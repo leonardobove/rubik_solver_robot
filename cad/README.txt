@@ -1,0 +1,1 @@
+Rubik cube solver robot (V-shape) by VolkerHochholzer on Thingiverse: https://www.thingiverse.com/thing:3826740
