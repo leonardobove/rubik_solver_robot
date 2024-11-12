@@ -1,0 +1,72 @@
+//indice
+
+BIANCO = 1
+ROSSO= 2
+BLU= 3
+ARANCIONE= 4
+VERDE= 5
+GIALLO= 6
+
+%funioni usate:
+%front_face(color) // muove il cubo posizionando il colore richiesto come front face
+%block(number) //resistuisce il numero equivlente al colore del blocchetto richiesto nella front_face
+%strato2function ha 2 ingressi(color1, color2) //colore del blocco in posizione 6 e colore del blocco sottostante nella faccia con il centro giallo. al termine di tale funzione si torna in front_face GIALLO
+
+%algoritmo secondo strato
+
+flag=ture
+
+while(flag==true)
+
+  for (N= 2:2:8) %cerco lungo ls croce della faccia gialla eventuali colori diversi dal giallo, se li trovo verifico che il blcco della faccia adiacente sia anch'esso diverso da giallo, se così è esegue algoritmo e riavvia l'intero for
+
+    front_face(GIALLO) %vado su faccia gialla per controllare la croce 
+    flag=false
+
+    if(block(N)!= GIALLO  %leggo sulle faccia corrispondente
+
+    under_color= block(N)
+    
+        switch(N) begin %ruoto il cubo, cambiando quindi front_face, a seconda di quale faccia diversa dal giallo della croce sono
+           case 2
+                    ruota_up
+
+            case 4 
+                     routa_right
+                    flip_right  
+                
+            case 6 
+                    ruota_left
+                    flip_left
+
+            case 8
+                    ruota_down
+                    flip_right
+                    flip_right
+                 
+         end
+            
+        if (block(8)!= GIALLO) %verifico che il blocco associato sia anch'esso diverso dal giallo, se così è avvio algoritmo
+             strato2function(block(8),under_color)
+              flag=true % avendo apportato modifiche al cubo, impongo di rimanere nel while, riavviando da capo il for
+              break
+        end
+    end
+  
+  end %conclusa sequenza di ordinamento
+   
+  % Se arrivo qui vuol dire che ho messo apposto tutti i blocchi possibili, controllo però se ci sono dei blocchi da "liberare"
+  if(flag== false)
+    for(N= 2:5) 
+      front_face(N)     %scorro tutte le facce laterali alla ricerca di blocchi laterali dello strato 2 non contenenti colore giallo o il colore effettivo della faccia
+      if(block(6)!= N)
+            strato2function(GIALLO, GIALLO) %quando chiamo la stratofuction con due ingressi gialli di default eseguirà la sequenza a destra (guarda strato2function)
+            flag ==true % liberato il blocco deve riesegueire la sequenza di ordinamento sopra
+            break
+      end
+    end
+  end
+end
+  
+
+  

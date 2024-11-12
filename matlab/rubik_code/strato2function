@@ -1,0 +1,54 @@
+function leftscript()
+    down
+    left
+    down
+    leftinverted
+    downinverted
+    frontinverted
+    downinverted
+    front
+end
+
+function rightscript()
+    downinverted
+    rightinverted
+    downinverted
+    right
+    down
+    front
+    down
+    frontinverted
+end
+
+
+
+
+
+
+
+
+function strato2function(color1, color2)
+    if(color1 == color2 == 6)  %  sei due colori sono giallo  eseguo di default scritp a sinistra
+        rightscript
+    else
+            front_face(color1)
+            for (N = 1:4)  %allineo blocco 8 con il centro dello stesso colore, formando la "T"
+                down
+                if (block(8)==color1)
+                break
+                end  
+            end
+            if(color1==2) %sono nella faccia rossa
+                if(color2==5)
+                    leftscript
+                else
+                    rightscript
+                end
+            
+            elseif (color2== color1-1) %sono in tutte le alre facce
+                leftscript
+            else
+                rightscript
+            end
+    end
+end
