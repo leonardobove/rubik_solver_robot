@@ -28,7 +28,7 @@ end
 
 
 function strato2function(color1, color2)
-    if(color1 == color2 == 6)  %  sei due colori sono giallo  eseguo di default scritp a sinistra
+    if(color1 == color2 == 6)  %  se i due colori sono giallo  eseguo di default scritp a destra
         rightscript
     else
             front_face(color1)
