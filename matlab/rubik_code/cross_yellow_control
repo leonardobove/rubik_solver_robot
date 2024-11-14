@@ -1,0 +1,40 @@
+%indice
+BIANCO = 1
+ROSSO= 2
+BLU= 3
+ARANCIONE= 4
+VERDE= 5
+GIALLO= 6
+
+%funioni usate:
+%front_face(color) // muove il cubo posizionando il colore richiesto come front face
+%block(number) //resistuisce il numero equivlente al colore del blocchetto richiesto nella front_face
+%strato2function ha 2 ingressi(color1, color2) //colore del blocco in posizione 6 e colore del blocco sottostante nella faccia con il centro giallo. al termine di tale funzione si torna in front_face GIALLO
+flag=false
+front_face(GIALLO)
+if(block(2)!=GIALLO || block(4)!=GIALLO || block(6)!=GIALLO || block(8)!=GIALLO) %ho gia la croce gialla
+    if(block(2)!=GIALLO && block(4)!=GIALLO && block(6)!=GIALLO && block(8)!=GIALLO) % caso in cui non ho niente, da riverede questo... ci sta che serva fare delle combinazioni per avere solo 3 colori diversi da 4
+        flip_down %forse da aggiungere qualcosa qui...
+        cross_yellow_function_1
+        cross_yellow_function_2
+    elseif((block(2)== GIALLO && block(8)== GIALLO)|| (block(4)== GIALLO && block(6)== GIALLO)) %caso linea gialla centrale
+        if(block(2)== GIALLO && block(8)== GIALLO) %metto linea gialla in orizzontale
+            frontinverted
+        end
+        flip_down
+        cross_yellow_function_2
+    else
+
+            for N = 1:4 %ho direttamente il caso L
+                if(block(2)== GIALLO && block(4)==GIALLO)
+                    flip_down
+                    cross_yellow_function_1
+                    break
+                else
+                    frontinverted
+                end
+                
+            end
+    end
+
+end

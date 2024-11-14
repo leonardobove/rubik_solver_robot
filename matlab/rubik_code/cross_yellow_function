@@ -1,0 +1,21 @@
+
+%algoritmo cross se ho gia una L gialla
+function cross_yellow_function_1
+    rightinverted
+    upinverted
+    frontinverted
+    up
+    front
+    right
+end
+
+%algoritmo cross se ho una riga
+function cross_yellow_function_2
+    front
+    right
+    up
+    rightinverted
+    upinverted
+    frontinverted
+end
+
