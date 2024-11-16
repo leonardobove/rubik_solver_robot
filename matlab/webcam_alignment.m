@@ -1,5 +1,15 @@
+% This script captures frames from a webcam and continuously overlays a grid of 9 red circles
+% onto each frame, displaying the real-time video feed with the overlaid circles. The loop
+% runs until manually terminated by pressing Ctrl+C. The script uses a try-catch block to
+% ensure that resources are cleaned up properly when the loop is interrupted.
+%
+% Description of key features:
+% - The overlay consists of 9 circles arranged in a square grid.
+% - The webcam's resolution, contrast, and other settings are configured.
+% - Pressing Ctrl+C safely exits the loop and releases the webcam object.
+
 % Create a webcam object for the second camera
-cam = webcam(2);
+cam = webcam(1);
 
 % Configure the webcam properties as specified
 cam.Resolution = '800x600';
@@ -42,28 +52,31 @@ positions = [
     distance, distance
 ];
 
-% Preview loop with overlay
-while true
-    % Capture the frame from the webcam
-    frame = snapshot(cam);
-    
-    % Add the 9 circles to the frame
-    imshow(frame); % Display the frame
-    hold on;
-    for i = 1:size(positions, 1)
-        % Calculate the position of each circle
-        x = centerX + positions(i, 1);
-        y = centerY + positions(i, 2);
-        
-        % Plot the circle (filled)
-        rectangle('Position', [x-circleRadius, y-circleRadius, circleRadius*2, circleRadius*2], ...
-                  'Curvature', [1, 1], 'FaceColor', 'r', 'EdgeColor', 'none');
-    end
-    hold off;
-    
-    % Pause for a short duration to update the preview smoothly
-    pause(0.01);
-end
+% Preview loop with overlay inside a try-catch block for safe termination
+try
+    while true
+        % Capture the frame from the webcam
+        frame = snapshot(cam);
 
-% Clean up after exiting the loop
-clear cam;
+        % Add the 9 circles to the frame
+        imshow(frame); % Display the frame
+        hold on;
+        for i = 1:size(positions, 1)
+            % Calculate the position of each circle
+            x = centerX + positions(i, 1);
+            y = centerY + positions(i, 2);
+
+            % Plot the circle (filled)
+            rectangle('Position', [x-circleRadius, y-circleRadius, circleRadius*2, circleRadius*2], ...
+                      'Curvature', [1, 1], 'FaceColor', 'r', 'EdgeColor', 'none');
+        end
+        hold off;
+
+        % Pause for a short duration to update the preview smoothly
+        pause(0.01);
+    end
+catch
+    % Clean up the webcam object when the loop is interrupted
+    clear cam;
+    disp('Exited the preview loop.');
+end
