@@ -1,6 +1,7 @@
-*/.vscode
+.vscode/
 python/.vscode
 python/bin
 python/include
 python/lib
 python/pyvenv.cfg
+matlab/slprj/
