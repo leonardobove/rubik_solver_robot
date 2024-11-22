@@ -53,7 +53,7 @@ classdef WebcamManager < matlab.System
                         disp(rgb_colors);
                     end
                     if any(face_colors(:) == 0) % Check if any detected color is equal to 0 (invalid color)
-                        error('get_face_colors:InvalidColor', 'An unidentified color in the current was found.');
+                        disp('An unidentified color in the current was found.');
                         read_done = 2;
                     else % Valid color values, update the cube color matrix
                         % Get the index of the face by looking at the center
