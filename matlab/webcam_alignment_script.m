@@ -8,10 +8,6 @@
 % - The webcam's resolution, contrast, and other settings are configured.
 % - Pressing Ctrl+C safely exits the loop and releases the webcam object.
 
-% Declare a global variable to determine the end of the alignment phase
-global stop_alignment;
-stop_alignment = false;
-
 % Create a webcam object for the second camera
 cam = webcam(1);
 
@@ -78,9 +74,6 @@ while true
     % Pause for a short duration to update the preview smoothly
     pause(0.01);
 
-    if stop_alignment
-        closePreview(cam);
-        clear cam;
-        return;
-    end
+    % Clean up the webcam object when the loop is interrupted
+    clear cam;
 end

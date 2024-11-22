@@ -1,6 +1,12 @@
+.vscode/
 */.vscode
 python/.vscode
 python/bin
 python/include
 python/lib
 python/pyvenv.cfg
+matlab/slprj/
+matlab/*.mexw64
+matlab/*.original
+matlab/*.slxc
+matlab/*mbd_rtw/
