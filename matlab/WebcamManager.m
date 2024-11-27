@@ -14,6 +14,8 @@ classdef WebcamManager < matlab.System
         alignment_in_progress;           % Flag to check if the webcam_alignment script is being executed
 
         sw3_input_status;                % Previous input of the SW3
+
+        webcam_alignment_process;        % Future for the webcam alignment parallel thread
     end
 
     % Pre-computed constants
@@ -35,15 +37,16 @@ classdef WebcamManager < matlab.System
             
             if SIL % SIL simulation, generate a random Rubik Cube
                 if webcam_alignment_trig == 1 && obj.webcam_alignment_trig_status == 0
-                    cube = rubgen(3, 23); % Generate a random cube configuration
+                    cube = rubgen(3, 3); % Generate a random cube configuration
                     alignment_done = 1;
+                    read_done = 1;
                 end
             else
                 % Activate webcam scripts on positive edge of the corresponding
                 % activation trigger
                 if webcam_alignment_trig == 1 && obj.webcam_alignment_trig_status == 0
                     stop_alignment = false;
-                    parfeval(@webcam_alignment, 0);   % Enable webcam alignment in a separate thread
+                    obj.webcam_alignment_process = parfeval(@webcam_alignment, 0);   % Enable webcam alignment in a separate thread
                     obj.alignment_in_progress = true;
                     alignment_done = 0;
                 elseif read_face_trig == 1 && obj.read_face_trig_status == 0
@@ -73,6 +76,7 @@ classdef WebcamManager < matlab.System
                 if obj.alignment_in_progress
                     stop_alignment = true;
                     obj.alignment_in_progress = false;
+                    cancel(obj.webcam_alignment_process); % Stop the parallel process from running
                     alignment_done = 1;
                 end
             end
@@ -90,6 +94,7 @@ classdef WebcamManager < matlab.System
             obj.read_face_trig_status = 0;
             obj.alignment_in_progress = false;
             obj.sw3_input_status = 0;
+            obj.webcam_alignment_process = 0;
         end
 
 

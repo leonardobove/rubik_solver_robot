@@ -28,6 +28,9 @@ classdef RubikCubeModel < matlab.System
         % animation can start
         cube_ready;
         cube_ready_old;
+
+        % Old status of 'move_done', in order to detect signal edges
+        move_done_old;
     end
 
     % Pre-computed constants
@@ -40,20 +43,32 @@ classdef RubikCubeModel < matlab.System
             % Perform one-time calculations, such as computing constants
         end
 
-        function stepImpl(obj, BR_duty, TR_duty, BL_duty, TL_duty, SIL)
+        function stepImpl(obj, BR_duty, TR_duty, BL_duty, TL_duty, move_done, SIL)
             global cube;
             global alignment_done;
+            global moves;
+            global current_move_idx;
+            global execute_move;
 
             % If the alignment has been done and we are in SIL execution,
             % the cube is simulated and is ready
-            if alignment_done == 1 && SIL == 1
-                obj.cube_ready = true;
+            if ~obj.cube_ready
+                if alignment_done == 1 && SIL == 1
+                    obj.cube_ready = true;
+                elseif all(cube(:) ~= 0) && SIL == 0 % If not in SIL execution, check if all the faces have been read
+                    obj.cube_ready = true;
+                end
             end
 
             % Plot the cube only once the first time it becomes available
+            % and calculate the sequence of moves to solve it
             if obj.cube_ready && ~obj.cube_ready_old
+                % Plot
                 rubplot(cube);
                 drawnow;
+
+                % Solve
+                moves = update_algorithm(moves, true, false, 'cube', cube);
             end
 
             % Truncate input values to the 4th decimal number
@@ -63,17 +78,24 @@ classdef RubikCubeModel < matlab.System
             TL_duty_truncated = floor(TL_duty * 10^4) / 10^4;
 
             if obj.cube_ready
-                % Animate the current move
+                % Animate the current move and change the algorithm POV at
+                % any cube rotation
                 if TR_duty_truncated == obj.duty_grip_closed && TL_duty_truncated == obj.duty_grip_open && BR_duty_truncated > obj.BR_duty_old
                     % Counter-clockwise rotation of the right arm with the left
                     % grip open (x1)
                     cube = rubrot2(cube, 'x1', 'animate', 1);
                     drawnow;
+
+                    % Rotate algorithm
+                    moves = update_algorithm(moves, false, true, 'rotation', 'x3');
                 elseif TR_duty_truncated == obj.duty_grip_closed && TL_duty_truncated == obj.duty_grip_open && BR_duty_truncated < obj.BR_duty_old
                     % Clockwise rotation of the right arm with the left grip
                     % open (x3)
                     cube = rubrot2(cube, 'x3', 'animate', 1);
                     drawnow;
+
+                    % Rotate algorithm
+                    moves = update_algorithm(moves, false, true, 'rotation', 'x1');
                 elseif TR_duty_truncated == obj.duty_grip_closed && TL_duty_truncated == obj.duty_grip_closed && BR_duty_truncated > obj.BR_duty_old
                     % Counter-clockwise rotation of the right arm with the left
                     % grip closed (x11)
@@ -89,11 +111,17 @@ classdef RubikCubeModel < matlab.System
                     % grip open (z1)
                     cube = rubrot2(cube, 'z1', 'animate', 1);
                     drawnow;
+
+                    % Rotate algorithm
+                    moves = update_algorithm(moves, false, true, 'rotation', 'z3');
                 elseif TL_duty_truncated == obj.duty_grip_closed && TR_duty_truncated == obj.duty_grip_open && BL_duty_truncated < obj.BL_duty_old
                     % Clockwise rotation of the left arm with the right grip
                     % open (z3)
                     cube = rubrot2(cube, 'z3', 'animate', 1);
                     drawnow;
+
+                    % Rotate algorithm
+                    moves = update_algorithm(moves, false, true, 'rotation', 'z1');
                 elseif TL_duty_truncated == obj.duty_grip_closed && TR_duty_truncated == obj.duty_grip_closed && BL_duty_truncated > obj.BL_duty_old
                     % Counter-clockwise rotation of the left arm with the right
                     % grip closed (z31)
@@ -107,6 +135,15 @@ classdef RubikCubeModel < matlab.System
                 end
             end
 
+            % After applying rotations (rising edge of move_done), update current move index if the
+            % move is completed and start move execution
+            if move_done == 1 && obj.move_done_old == 0
+                current_move_idx = uint16(current_move_idx + 1);
+                execute_move = 1;
+            elseif move_done == 0
+                execute_move = 0;
+            end
+
             % Update duty cycle values
             obj.BR_duty_old = BR_duty_truncated;
             obj.TR_duty_old = TR_duty_truncated;
@@ -114,6 +151,8 @@ classdef RubikCubeModel < matlab.System
             obj.TL_duty_old = TL_duty_truncated;
 
             obj.cube_ready_old = obj.cube_ready;
+
+            obj.move_done_old = move_done;
         end
 
         function resetImpl(obj)
@@ -139,6 +178,8 @@ classdef RubikCubeModel < matlab.System
 
             obj.cube_ready = false;
             obj.cube_ready_old = false;
+
+            obj.move_done_old = 0;
         end
     end
 end

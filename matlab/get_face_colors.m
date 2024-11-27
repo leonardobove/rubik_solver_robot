@@ -72,9 +72,9 @@ function [face_colors, rgb_colors] = get_face_colors(debug)
         'white',   [200, 200, 200], [255, 255, 255], 5;
         'red',     [150, 0, 0],     [255, 90, 90],   1;
         'green',   [0, 120, 0],     [190, 255, 190], 4;
-        'yellow',  [200, 200, 0],   [255, 255, 100], 6;
+        'yellow',  [180, 180, 0],   [255, 255, 150], 6;
         'blue',    [0, 0, 150],     [150, 150, 255], 2;
-        'orange',  [200, 75, 0],   [255, 180, 80],  3
+        'orange',  [200, 60, 0],   [255, 180, 80],  3
     };
 
     % Loop to calculate the average RGB color for each circle and classify based on ranges
