@@ -37,7 +37,7 @@ classdef WebcamManager < matlab.System
             
             if SIL % SIL simulation, generate a random Rubik Cube
                 if webcam_alignment_trig == 1 && obj.webcam_alignment_trig_status == 0
-                    cube = rubgen(3, 3); % Generate a random cube configuration
+                    cube = rubgen(3, 2); % Generate a random cube configuration
                     alignment_done = 1;
                     read_done = 1;
                 end

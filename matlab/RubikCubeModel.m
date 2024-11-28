@@ -88,6 +88,16 @@ classdef RubikCubeModel < matlab.System
 
                     % Rotate algorithm
                     moves = update_algorithm(moves, false, true, 'rotation', 'x3');
+                    %moves = update_algorithm(moves, false, true, 'rotation', 'x1');
+
+                    % If the previous motor angle was at 0 degrees and now
+                    % is set to 180 degrees, a 180 degrees turn has
+                    % happend: rotate again
+                    if obj.BR_duty_old == obj.duty_0_deg && BR_duty_truncated == obj.duty_180_deg
+                        cube = rubrot2(cube, 'x1', 'animate', 1);
+                        drawnow;
+                        moves = update_algorithm(moves, false, true, 'rotation', 'x3');
+                    end
                 elseif TR_duty_truncated == obj.duty_grip_closed && TL_duty_truncated == obj.duty_grip_open && BR_duty_truncated < obj.BR_duty_old
                     % Clockwise rotation of the right arm with the left grip
                     % open (x3)
@@ -96,16 +106,42 @@ classdef RubikCubeModel < matlab.System
 
                     % Rotate algorithm
                     moves = update_algorithm(moves, false, true, 'rotation', 'x1');
+                    %moves = update_algorithm(moves, false, true, 'rotation', 'x3');
+
+                    % If the previous motor angle was at 180 degrees and now
+                    % is set to 0 degrees, a 180 degrees turn has
+                    % happend: rotate again
+                    if obj.BR_duty_old == obj.duty_180_deg && BR_duty_truncated == obj.duty_0_deg
+                        cube = rubrot2(cube, 'x3', 'animate', 1);
+                        drawnow;
+                        moves = update_algorithm(moves, false, true, 'rotation', 'x1');
+                    end
                 elseif TR_duty_truncated == obj.duty_grip_closed && TL_duty_truncated == obj.duty_grip_closed && BR_duty_truncated > obj.BR_duty_old
                     % Counter-clockwise rotation of the right arm with the left
                     % grip closed (x11)
                     cube = rubplot(cube, 'x11');
                     drawnow;
+
+                    % If the previous motor angle was at 0 degrees and now
+                    % is set to 180 degrees, a 180 degrees turn has
+                    % happend: rotate again
+                    if obj.BR_duty_old == obj.duty_0_deg && BR_duty_truncated == obj.duty_180_deg
+                        cube = rubplot(cube, 'x11');
+                        drawnow;
+                    end
                 elseif TR_duty_truncated == obj.duty_grip_closed && TL_duty_truncated == obj.duty_grip_closed && BR_duty_truncated < obj.BR_duty_old
                     % Clockwise rotation of the right arm with the left grip
                     % closed (x13)
                     cube = rubplot(cube, 'x13');
                     drawnow;
+
+                    % If the previous motor angle was at 180 degrees and now
+                    % is set to 0 degrees, a 180 degrees turn has
+                    % happend: rotate again
+                    if obj.BR_duty_old == obj.duty_180_deg && BR_duty_truncated == obj.duty_0_deg
+                        cube = rubplot(cube, 'x13');
+                        drawnow;
+                    end
                 elseif TL_duty_truncated == obj.duty_grip_closed && TR_duty_truncated == obj.duty_grip_open && BL_duty_truncated > obj.BL_duty_old
                     % Counter-clockwise rotation of the left arm with the right
                     % grip open (z1)
@@ -114,6 +150,16 @@ classdef RubikCubeModel < matlab.System
 
                     % Rotate algorithm
                     moves = update_algorithm(moves, false, true, 'rotation', 'z3');
+                    %moves = update_algorithm(moves, false, true, 'rotation', 'z3');
+
+                    % If the previous motor angle was at 0 degrees and now
+                    % is set to 180 degrees, a 180 degrees turn has
+                    % happend: rotate again
+                    if obj.BR_duty_old == obj.duty_0_deg && BR_duty_truncated == obj.duty_180_deg
+                        cube = rubrot2(cube, 'z1', 'animate', 1);
+                        drawnow;
+                        moves = update_algorithm(moves, false, true, 'rotation', 'z3');
+                    end
                 elseif TL_duty_truncated == obj.duty_grip_closed && TR_duty_truncated == obj.duty_grip_open && BL_duty_truncated < obj.BL_duty_old
                     % Clockwise rotation of the left arm with the right grip
                     % open (z3)
@@ -122,16 +168,42 @@ classdef RubikCubeModel < matlab.System
 
                     % Rotate algorithm
                     moves = update_algorithm(moves, false, true, 'rotation', 'z1');
+                    %moves = update_algorithm(moves, false, true, 'rotation', 'z1');
+                        
+                    % If the previous motor angle was at 180 degrees and now
+                    % is set to 0 degrees, a 180 degrees turn has
+                    % happend: rotate again
+                    if obj.BR_duty_old == obj.duty_180_deg && BR_duty_truncated == obj.duty_0_deg
+                        cube = rubrot2(cube, 'z3', 'animate', 1);
+                        drawnow;
+                        moves = update_algorithm(moves, false, true, 'rotation', 'z1');
+                    end
                 elseif TL_duty_truncated == obj.duty_grip_closed && TR_duty_truncated == obj.duty_grip_closed && BL_duty_truncated > obj.BL_duty_old
                     % Counter-clockwise rotation of the left arm with the right
                     % grip closed (z31)
                     cube = rubplot(cube, 'z31');
                     drawnow;
+
+                    % If the previous motor angle was at 0 degrees and now
+                    % is set to 180 degrees, a 180 degrees turn has
+                    % happend: rotate again
+                    if obj.BR_duty_old == obj.duty_0_deg && BR_duty_truncated == obj.duty_180_deg
+                        cube = rubplot(cube, 'z31');
+                        drawnow;
+                    end
                 elseif TL_duty_truncated == obj.duty_grip_closed && TR_duty_truncated == obj.duty_grip_closed && BL_duty_truncated < obj.BL_duty_old
                     % Clockwise rotation of the left arm with the right grip
                     % closed (z33)
                     cube = rubplot(cube, 'z33');
                     drawnow;
+
+                    % If the previous motor angle was at 180 degrees and now
+                    % is set to 0 degrees, a 180 degrees turn has
+                    % happend: rotate again
+                    if obj.BR_duty_old == obj.duty_180_deg && BR_duty_truncated == obj.duty_0_deg
+                        cube = rubplot(cube, 'z33');
+                        drawnow;
+                    end
                 end
             end
 
@@ -139,9 +211,10 @@ classdef RubikCubeModel < matlab.System
             % move is completed and start move execution
             if move_done == 1 && obj.move_done_old == 0
                 current_move_idx = uint16(current_move_idx + 1);
-                execute_move = 1;
             elseif move_done == 0
                 execute_move = 0;
+            elseif move_done == 1
+                execute_move = 1;
             end
 
             % Update duty cycle values
@@ -179,7 +252,7 @@ classdef RubikCubeModel < matlab.System
             obj.cube_ready = false;
             obj.cube_ready_old = false;
 
-            obj.move_done_old = 0;
+            obj.move_done_old = 1; % This is necessary so that initialization doesn't trigger the update of the current move
         end
     end
 end

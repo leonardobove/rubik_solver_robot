@@ -9,7 +9,8 @@ function moves = update_algorithm(moves, solve, rotate, varargin)
 
 if solve
     if nargin == 5 && strcmpi(varargin{1}, 'cube') % Check if cube configuration was given
-        moves_str = Solve45(rubgen(3,23)); % Solve cube
+        moves_str = Solve45(varargin{2}); % Solve cube
+        display(moves_str); 
     else
         disp("No cube configuration was given. Did you mean update_algortihm(true, false, 'cube', cube)?");
         return;
