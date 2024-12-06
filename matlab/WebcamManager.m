@@ -29,7 +29,7 @@ classdef WebcamManager < matlab.System
             
         end
 
-        function stepImpl(obj, read_face_trig, webcam_alignment_trig, debug, sw3_input, SIL)
+        function stepImpl(obj, read_face_trig, webcam_alignment_trig, debug, sw3_input, SIL, reset)
             global stop_alignment;
             global read_done;
             global alignment_done;
@@ -79,8 +79,23 @@ classdef WebcamManager < matlab.System
                     cancel(obj.webcam_alignment_process); % Stop the parallel process from running
                     alignment_done = 1;
                 end
+
             end
 
+            if reset
+                if SIL==0 && obj.alignment_in_progress==1
+                    obj.webcam_alignment_trig_status = 0;
+                    obj.read_face_trig_status = 0;
+                    obj.alignment_in_progress = false;
+                    obj.sw3_input_status = 0;
+                    cancel(obj.webcam_alignment_process); 
+                    obj.webcam_alignment_process = 0;
+                end
+                cube = zeros(3, 3, 6);
+                stop_alignment = false;
+                read_done= 0;
+                alignment_done =0;
+            end
 
             % Update input triggers status
             obj.webcam_alignment_trig_status = webcam_alignment_trig;
