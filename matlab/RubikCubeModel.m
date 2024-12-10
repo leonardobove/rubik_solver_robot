@@ -43,7 +43,7 @@ classdef RubikCubeModel < matlab.System
             % Perform one-time calculations, such as computing constants
         end
 
-        function stepImpl(obj, BR_duty, TR_duty, BL_duty, TL_duty, move_done, SIL)
+        function stepImpl(obj, BR_duty, TR_duty, BL_duty, TL_duty, move_done, SIL, reset)
             global cube;
             global alignment_done;
             global moves;
@@ -226,6 +226,24 @@ classdef RubikCubeModel < matlab.System
             obj.cube_ready_old = obj.cube_ready;
 
             obj.move_done_old = move_done;
+
+            if reset
+                %reset class variables
+                obj.BL_duty_old = 0;
+                obj.TL_duty_old = 0;
+                obj.BR_duty_old = 0;
+                obj.TR_duty_old = 0;
+                obj.cube_ready = false;
+                obj.cube_ready_old = false;
+                obj.move_done_old = 1;
+
+                %reset global parameters
+                moves=uint8(zeros(45, 2));
+                current_move_idx = uint16(1);
+
+                %close the cube's window
+                close all;
+            end
         end
 
         function resetImpl(obj)
