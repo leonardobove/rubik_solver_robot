@@ -14,18 +14,17 @@ classdef WebcamManager < matlab.System
         alignment_in_progress;           % Flag to check if the webcam_alignment script is being executed
 
         sw3_input_status;                % Previous input of the SW3
-
-        webcam_alignment_process;        % Future for the webcam alignment parallel thread
     end
 
     % Pre-computed constants
     properties (Access = private)
-
+        webcam_alignment_process;        % Future for the webcam alignment parallel thread
     end
 
     methods (Access = protected)
         function setupImpl(obj)
             % Perform one-time calculations, such as computing constants
+            obj.webcam_alignment_process = parallel.FevalFuture.empty;
             
         end
 
@@ -34,7 +33,7 @@ classdef WebcamManager < matlab.System
             global read_done;
             global alignment_done;
             global cube;
-            
+
             if SIL % SIL simulation, generate a random Rubik Cube
                 if webcam_alignment_trig == 1 && obj.webcam_alignment_trig_status == 0
                     cube = rubgen(3, 10); % Generate a random cube configuration
@@ -76,7 +75,8 @@ classdef WebcamManager < matlab.System
                 if obj.alignment_in_progress
                     stop_alignment = true;
                     obj.alignment_in_progress = false;
-                    cancel(obj.webcam_alignment_process); % Stop the parallel process from running
+                    % Stop the parallel process from running
+                    cancel(obj.webcam_alignment_process);
                     alignment_done = 1;
                 end
             end
