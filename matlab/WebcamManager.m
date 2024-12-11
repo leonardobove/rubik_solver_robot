@@ -10,6 +10,8 @@ classdef WebcamManager < matlab.System
     properties (DiscreteState)
         webcam_alignment_trig_status;    % Previous input of the webcam alignment activation trigger
         read_face_trig_status;           % Previous input of the read face activation trigger
+        retake_pcicture_status;          % Previous input of the re-take picture button
+        load_face_status;                % Previous input of the load face button
 
         alignment_in_progress;           % Flag to check if the webcam_alignment script is being executed
 
@@ -28,7 +30,7 @@ classdef WebcamManager < matlab.System
             
         end
 
-        function stepImpl(obj, read_face_trig, webcam_alignment_trig, debug, sw3_input, SIL, reset)
+        function stepImpl(obj, read_face_trig, webcam_alignment_trig, debug, sw3_input, SIL, reset, retake_picture, load_face, manual_face)
             global stop_alignment;
             global read_done;
             global alignment_done;
@@ -67,6 +69,20 @@ classdef WebcamManager < matlab.System
 
                         read_done = 1;
                     end
+                elseif retake_picture == 1 && obj.read_face_trig_status == 0
+                    read_done = 2;
+                end
+                
+                % Load manually the colors of a face.
+                % Useful in case of multiple color detection errors.
+                if load_face == 1 && obj.load_face_status == 0                    
+                    % Get the index of the manual face
+                    face_index = manual_face(2, 2);
+
+                    % Manually update the corresponding face colors
+                    cube(:, :, face_index) = manual_face;
+
+                    read_done = 1;
                 end
             end
             
@@ -86,6 +102,8 @@ classdef WebcamManager < matlab.System
                 if SIL==0 && obj.alignment_in_progress==1
                     obj.webcam_alignment_trig_status = 0;
                     obj.read_face_trig_status = 0;
+                    obj.retake_pcicture_status = 0;
+                    obj.load_face_status = 0;
                     obj.alignment_in_progress = false;
                     obj.sw3_input_status = 0;
                     cancel(obj.webcam_alignment_process); 
@@ -93,13 +111,15 @@ classdef WebcamManager < matlab.System
                 end
                 cube = zeros(3, 3, 6);
                 stop_alignment = false;
-                read_done= 0;
+                read_done = 0;
                 alignment_done =0;
             end
 
             % Update input triggers status
             obj.webcam_alignment_trig_status = webcam_alignment_trig;
             obj.read_face_trig_status = read_face_trig;
+            obj.retake_pcicture_status = retake_picture;
+            obj.load_face_status = load_face;
             obj.sw3_input_status = sw3_input;
         end
 
@@ -107,6 +127,8 @@ classdef WebcamManager < matlab.System
             % Initialize / reset discrete-state properties
             obj.webcam_alignment_trig_status = 0;
             obj.read_face_trig_status = 0;
+            obj.retake_pcicture_status = 0;
+            obj.load_face_status = 0;
             obj.alignment_in_progress = false;
             obj.sw3_input_status = 0;
             obj.webcam_alignment_process = 0;

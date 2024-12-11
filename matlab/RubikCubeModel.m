@@ -259,7 +259,7 @@ classdef RubikCubeModel < matlab.System
             obj.duty_90_deg = obj.min_duty + (obj.max_duty-obj.min_duty)/2;
             obj.duty_180_deg = obj.max_duty;
             obj.duty_grip_open = obj.min_duty + (obj.max_duty-obj.min_duty)/3;
-            obj.duty_grip_closed = obj.min_duty + (obj.max_duty-obj.min_duty)/9;
+            obj.duty_grip_closed = obj.min_duty + (obj.max_duty-obj.min_duty)/13;
 
             % Truncate values to the 4th decimal number
             obj.duty_90_deg = floor(obj.duty_90_deg * 10^4) / 10^4;
