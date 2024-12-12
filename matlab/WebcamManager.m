@@ -12,6 +12,7 @@ classdef WebcamManager < matlab.System
         read_face_trig_status;           % Previous input of the read face activation trigger
         retake_picture_status;           % Previous input of the re-take picture button
         load_face_status;                % Previous input of the load face button
+        load_cube_status;                % Previous input of the load cube button
 
         alignment_in_progress;           % Flag to check if the webcam_alignment script is being executed
 
@@ -30,7 +31,7 @@ classdef WebcamManager < matlab.System
             
         end
 
-        function stepImpl(obj, read_face_trig, webcam_alignment_trig, debug, sw3_input, SIL, reset, retake_picture, load_face, manual_face, generate_cube)
+        function stepImpl(obj, read_face_trig, webcam_alignment_trig, debug, sw3_input, SIL, reset, retake_picture, load_face, load_cube, manual_face, manual_cube, generate_cube)
             global stop_alignment;
             global read_done;
             global alignment_done;
@@ -92,6 +93,18 @@ classdef WebcamManager < matlab.System
                     read_done = 1;
                 end
             end
+
+            % Load manually the colors of the whole cube.
+            if load_cube == 1 && obj.load_cube_status == 0 && generate_cube == 0
+                if any(manual_cube(:) == 0) % Check if any detected color is equal to 0 (invalid color)
+                    disp('An unidentified color in the current cube face was found.');
+                else
+                    disp(manual_cube);
+                    cube = manual_cube;                 
+
+                    read_done = 1;
+                end
+            end
             
             % Stop the webcam alignment thread when SW3 is pressed
             if sw3_input == 1 && obj.sw3_input_status == 0
@@ -111,6 +124,7 @@ classdef WebcamManager < matlab.System
                     obj.read_face_trig_status = 0;
                     obj.retake_picture_status = 0;
                     obj.load_face_status = 0;
+                    obj.load_cube_status = 0;
                     obj.alignment_in_progress = false;
                     obj.sw3_input_status = 0;
                     cancel(obj.webcam_alignment_process); 
@@ -127,6 +141,7 @@ classdef WebcamManager < matlab.System
             obj.read_face_trig_status = read_face_trig;
             obj.retake_picture_status = retake_picture;
             obj.load_face_status = load_face;
+            obj.load_cube_status = load_cube;
             obj.sw3_input_status = sw3_input;
         end
 
@@ -136,6 +151,7 @@ classdef WebcamManager < matlab.System
             obj.read_face_trig_status = 0;
             obj.retake_picture_status = 0;
             obj.load_face_status = 0;
+            obj.load_cube_status = 0;
             obj.alignment_in_progress = false;
             obj.sw3_input_status = 0;
             obj.webcam_alignment_process = 0;
