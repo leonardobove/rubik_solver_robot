@@ -6,7 +6,6 @@
 % Description of key features:
 % - The overlay consists of 9 circles arranged in a square grid.
 % - The webcam's resolution, contrast, and other settings are configured.
-% - Pressing Ctrl+C safely exits the loop and releases the webcam object.
 
 % Create a webcam object for the second camera
 cam = webcam(1);

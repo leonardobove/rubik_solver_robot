@@ -30,17 +30,19 @@ classdef WebcamManager < matlab.System
             
         end
 
-        function stepImpl(obj, read_face_trig, webcam_alignment_trig, debug, sw3_input, SIL, reset, retake_picture, load_face, manual_face)
+        function stepImpl(obj, read_face_trig, webcam_alignment_trig, debug, sw3_input, SIL, reset, retake_picture, load_face, manual_face, generate_cube)
             global stop_alignment;
             global read_done;
             global alignment_done;
             global cube;
 
             if SIL % SIL simulation, generate a random Rubik Cube
-                if webcam_alignment_trig == 1 && obj.webcam_alignment_trig_status == 0
-                    cube = rubgen(3, 10); % Generate a random cube configuration
-                    alignment_done = 1;
-                    read_done = 1;
+                if generate_cube == 1   % If generate_cube is set to 1, generate a random cube and do not wait for the user to manually load the colors
+                    if webcam_alignment_trig == 1 && obj.webcam_alignment_trig_status == 0
+                        cube = rubgen(3, 10); % Generate a random cube configuration
+                        alignment_done = 1;
+                        read_done = 1;
+                    end
                 end
             else
                 % Activate webcam scripts on positive edge of the corresponding
@@ -57,8 +59,8 @@ classdef WebcamManager < matlab.System
                         disp(rgb_colors);
                     end
                     if any(face_colors(:) == 0) % Check if any detected color is equal to 0 (invalid color)
-                        disp('An unidentified color in the current was found.');
-                        read_done = 2;
+                        disp('An unidentified color in the current cube face was found.');
+                        %read_done = 2;
                     else % Valid color values, update the cube color matrix
                         % Get the index of the face by looking at the center
                         % tile color
@@ -72,12 +74,17 @@ classdef WebcamManager < matlab.System
                 elseif retake_picture == 1 && obj.read_face_trig_status == 0
                     read_done = 2;
                 end
-                
-                % Load manually the colors of a face.
-                % Useful in case of multiple color detection errors.
-                if load_face == 1 && obj.load_face_status == 0                    
+            end
+
+            % Load manually the colors of a face.
+            % Useful in case of multiple color detection errors.
+            if load_face == 1 && obj.load_face_status == 0 && generate_cube == 0
+                if any(manual_face(:) == 0) % Check if any detected color is equal to 0 (invalid color)
+                    disp('An unidentified color in the current cube face was found.');
+                else
                     % Get the index of the manual face
                     face_index = manual_face(2, 2);
+                    disp(manual_face)
 
                     % Manually update the corresponding face colors
                     cube(:, :, face_index) = manual_face;

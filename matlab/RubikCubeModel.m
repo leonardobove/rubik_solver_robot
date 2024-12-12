@@ -19,10 +19,16 @@ classdef RubikCubeModel < matlab.System
         min_duty;
         max_duty;
         duty_0_deg;
-        duty_90_deg;n 
+        duty_90_deg;
         duty_180_deg;
         duty_grip_open;
         duty_grip_closed;
+
+        % Offset values to be added to duty cycles of each arm, in order to
+        % compensante for mismatch errors between the two motors and therefore to
+        % be able to fine tune the motors positions.
+        offset_duty_left_arm;
+        offset_duty_right_arm;
 
         % Flag to check if the cube has been successfully read and the
         % animation can start
@@ -43,19 +49,17 @@ classdef RubikCubeModel < matlab.System
             % Perform one-time calculations, such as computing constants
         end
 
-        function stepImpl(obj, BR_duty, TR_duty, BL_duty, TL_duty, move_done, SIL, reset)
+        function stepImpl(obj, BR_duty, TR_duty, BL_duty, TL_duty, move_done, reset)
             global cube;
-            global alignment_done;
             global moves;
             global current_move_idx;
             global execute_move;
 
-            % If the alignment has been done and we are in SIL execution,
-            % the cube is simulated and is ready
+            % If all the colors of the cube are different from 0,
+            % the cube has been successfully acquired (or loaded or generated)
+            % and hence it is ready.
             if ~obj.cube_ready
-                if alignment_done == 1 && SIL == 1
-                    obj.cube_ready = true;
-                elseif all(cube(:) ~= 0) && SIL == 0 % If not in SIL execution, check if all the faces have been read
+                if all(cube(:) ~= 0)  % Check if all the faces have been read or manually loaded
                     obj.cube_ready = true;
                 end
             end
@@ -72,9 +76,9 @@ classdef RubikCubeModel < matlab.System
             end
 
             % Truncate input values to the 4th decimal number
-            BR_duty_truncated = floor(BR_duty * 10^4) / 10^4;
+            BR_duty_truncated = (floor(BR_duty * 10^4) / 10^4) - obj.offset_duty_right_arm;
             TR_duty_truncated = floor(TR_duty * 10^4) / 10^4;
-            BL_duty_truncated = floor(BL_duty * 10^4) / 10^4;
+            BL_duty_truncated = (floor(BL_duty * 10^4) / 10^4) - obj.offset_duty_left_arm;
             TL_duty_truncated = floor(TL_duty * 10^4) / 10^4;
 
             if obj.cube_ready
@@ -260,12 +264,17 @@ classdef RubikCubeModel < matlab.System
             obj.duty_180_deg = obj.max_duty;
             obj.duty_grip_open = obj.min_duty + (obj.max_duty-obj.min_duty)/3;
             obj.duty_grip_closed = obj.min_duty + (obj.max_duty-obj.min_duty)/13;
+            obj.offset_duty_left_arm = (obj.max_duty-obj.min_duty)/30;
+            obj.offset_duty_right_arm = 0;
 
             % Truncate values to the 4th decimal number
             obj.duty_90_deg = floor(obj.duty_90_deg * 10^4) / 10^4;
             obj.duty_180_deg = floor(obj.duty_180_deg * 10^4) / 10^4;
             obj.duty_grip_closed = floor(obj.duty_grip_closed * 10^4) / 10^4;
             obj.duty_grip_open = floor(obj.duty_grip_open * 10^4) / 10^4;
+            obj.offset_duty_left_arm = floor(obj.offset_duty_left_arm * 10^4) / 10^4;
+            obj.offset_duty_right_arm = floor(obj.offset_duty_right_arm * 10^4) / 10^4;
+
 
             obj.cube_ready = false;
             obj.cube_ready_old = false;
