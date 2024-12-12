@@ -10,7 +10,7 @@ classdef WebcamManager < matlab.System
     properties (DiscreteState)
         webcam_alignment_trig_status;    % Previous input of the webcam alignment activation trigger
         read_face_trig_status;           % Previous input of the read face activation trigger
-        retake_pcicture_status;          % Previous input of the re-take picture button
+        retake_picture_status;           % Previous input of the re-take picture button
         load_face_status;                % Previous input of the load face button
 
         alignment_in_progress;           % Flag to check if the webcam_alignment script is being executed
@@ -71,7 +71,7 @@ classdef WebcamManager < matlab.System
 
                         read_done = 1;
                     end
-                elseif retake_picture == 1 && obj.read_face_trig_status == 0
+                elseif retake_picture == 1 && obj.retake_picture_status == 0
                     read_done = 2;
                 end
             end
@@ -109,7 +109,7 @@ classdef WebcamManager < matlab.System
                 if SIL==0 && obj.alignment_in_progress==1
                     obj.webcam_alignment_trig_status = 0;
                     obj.read_face_trig_status = 0;
-                    obj.retake_pcicture_status = 0;
+                    obj.retake_picture_status = 0;
                     obj.load_face_status = 0;
                     obj.alignment_in_progress = false;
                     obj.sw3_input_status = 0;
@@ -125,7 +125,7 @@ classdef WebcamManager < matlab.System
             % Update input triggers status
             obj.webcam_alignment_trig_status = webcam_alignment_trig;
             obj.read_face_trig_status = read_face_trig;
-            obj.retake_pcicture_status = retake_picture;
+            obj.retake_picture_status = retake_picture;
             obj.load_face_status = load_face;
             obj.sw3_input_status = sw3_input;
         end
@@ -134,7 +134,7 @@ classdef WebcamManager < matlab.System
             % Initialize / reset discrete-state properties
             obj.webcam_alignment_trig_status = 0;
             obj.read_face_trig_status = 0;
-            obj.retake_pcicture_status = 0;
+            obj.retake_picture_status = 0;
             obj.load_face_status = 0;
             obj.alignment_in_progress = false;
             obj.sw3_input_status = 0;

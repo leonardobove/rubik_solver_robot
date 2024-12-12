@@ -76,10 +76,10 @@ classdef RubikCubeModel < matlab.System
             end
 
             % Truncate input values to the 4th decimal number
-            BR_duty_truncated = (floor(BR_duty * 10^4) / 10^4) - obj.offset_duty_right_arm;
-            TR_duty_truncated = floor(TR_duty * 10^4) / 10^4;
-            BL_duty_truncated = (floor(BL_duty * 10^4) / 10^4) - obj.offset_duty_left_arm;
-            TL_duty_truncated = floor(TL_duty * 10^4) / 10^4;
+            BR_duty_truncated = (floor((BR_duty-obj.offset_duty_right_arm) * 10^6) / 10^6);
+            TR_duty_truncated = floor(TR_duty * 10^6) / 10^6;
+            BL_duty_truncated = (floor((BL_duty - obj.offset_duty_left_arm)* 10^6) / 10^6);
+            TL_duty_truncated = floor(TL_duty * 10^6) / 10^6;
 
             if obj.cube_ready
                 % Animate the current move and change the algorithm POV at
@@ -268,12 +268,12 @@ classdef RubikCubeModel < matlab.System
             obj.offset_duty_right_arm = 0;
 
             % Truncate values to the 4th decimal number
-            obj.duty_90_deg = floor(obj.duty_90_deg * 10^4) / 10^4;
-            obj.duty_180_deg = floor(obj.duty_180_deg * 10^4) / 10^4;
-            obj.duty_grip_closed = floor(obj.duty_grip_closed * 10^4) / 10^4;
-            obj.duty_grip_open = floor(obj.duty_grip_open * 10^4) / 10^4;
-            obj.offset_duty_left_arm = floor(obj.offset_duty_left_arm * 10^4) / 10^4;
-            obj.offset_duty_right_arm = floor(obj.offset_duty_right_arm * 10^4) / 10^4;
+            obj.duty_90_deg = floor(obj.duty_90_deg * 10^6) / 10^6;
+            obj.duty_180_deg = floor(obj.duty_180_deg * 10^6) / 10^6;
+            obj.duty_grip_closed = floor(obj.duty_grip_closed * 10^6) / 10^6;
+            obj.duty_grip_open = floor(obj.duty_grip_open * 10^6) / 10^6;
+            obj.offset_duty_left_arm = floor(obj.offset_duty_left_arm * 10^6) / 10^6;
+            obj.offset_duty_right_arm = floor(obj.offset_duty_right_arm * 10^6) / 10^6;
 
 
             obj.cube_ready = false;
