@@ -248,6 +248,9 @@ classdef RubikCubeModel < matlab.System
                 %close the cube's window
                 close all;
             end
+
+            % Force update of the animation
+            drawnow;
         end
 
         function resetImpl(obj)
