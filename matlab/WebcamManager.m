@@ -50,7 +50,7 @@ classdef WebcamManager < matlab.System
                 % activation trigger
                 if webcam_alignment_trig == 1 && obj.webcam_alignment_trig_status == 0
                     stop_alignment = false;
-                    obj.webcam_alignment_process = parfeval(@webcam_alignment, 0);   % Enable webcam alignment in a separate thread
+                    %obj.webcam_alignment_process = parfeval(@webcam_alignment, 0);   % Enable webcam alignment in a separate thread
                     obj.alignment_in_progress = true;
                     alignment_done = 0;
                 elseif read_face_trig == 1 && obj.read_face_trig_status == 0
@@ -112,7 +112,7 @@ classdef WebcamManager < matlab.System
                     stop_alignment = true;
                     obj.alignment_in_progress = false;
                     % Stop the parallel process from running
-                    cancel(obj.webcam_alignment_process);
+                    %cancel(obj.webcam_alignment_process);
                     alignment_done = 1;
                 end
 
@@ -127,7 +127,7 @@ classdef WebcamManager < matlab.System
                     obj.load_cube_status = 0;
                     obj.alignment_in_progress = false;
                     obj.sw3_input_status = 0;
-                    cancel(obj.webcam_alignment_process); 
+                    %cancel(obj.webcam_alignment_process); 
                     obj.webcam_alignment_process = 0;
                 end
                 cube = zeros(3, 3, 6);

@@ -250,7 +250,7 @@ classdef RubikCubeModel < matlab.System
             end
 
             % Force update of the animation
-            drawnow;
+            pause(0.05);
         end
 
         function resetImpl(obj)
@@ -266,7 +266,7 @@ classdef RubikCubeModel < matlab.System
             obj.duty_90_deg = obj.min_duty + (obj.max_duty-obj.min_duty)/2;
             obj.duty_180_deg = obj.max_duty;
             obj.duty_grip_open = obj.min_duty + (obj.max_duty-obj.min_duty)/3;
-            obj.duty_grip_closed = obj.min_duty + (obj.max_duty-obj.min_duty)/13;
+            obj.duty_grip_closed = obj.min_duty + (obj.max_duty-obj.min_duty)/14;
             obj.offset_duty_left_arm = (obj.max_duty-obj.min_duty)/30;
             obj.offset_duty_right_arm = 0;
 
