@@ -48,7 +48,8 @@ classdef WebcamManager < matlab.System
                 if webcam_alignment_trig == 1 && obj.webcam_alignment_trig_status == 0
                     obj.webcam_alignment_process = parfeval(@webcam_alignment, 0);   % Enable webcam alignment in a separate thread
                     obj.alignment_in_progress = true;
-                elseif read_face_trig == 1 && obj.read_face_trig_status == 0
+                elseif (read_face_trig == 1 && obj.read_face_trig_status == 0) || read_done == 2
+                    read_done = 0;
                     [face_colors, rgb_colors] = get_face_colors(debug);
                     disp(face_colors);
                     if (debug)
@@ -67,7 +68,7 @@ classdef WebcamManager < matlab.System
                         read_done = 1;
                     end
                 elseif retake_picture == 1 && obj.retake_picture_status == 0
-                    read_done = 2;
+                    read_done = 2; % Set read_done to 2 in order to re-trigger face colors acquisition
                 end
             end
 
