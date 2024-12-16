@@ -92,11 +92,10 @@ classdef RubikCubeModel < matlab.System
 
                     % Rotate algorithm
                     moves = update_algorithm(moves, false, true, 'rotation', 'x3');
-                    %moves = update_algorithm(moves, false, true, 'rotation', 'x1');
 
                     % If the previous motor angle was at 0 degrees and now
                     % is set to 180 degrees, a 180 degrees turn has
-                    % happend: rotate again
+                    % happened: rotate again
                     if obj.BR_duty_old == obj.duty_0_deg && BR_duty_truncated == obj.duty_180_deg
                         cube = rubrot2(cube, 'x1', 'animate', 1);
                         drawnow;
@@ -110,11 +109,10 @@ classdef RubikCubeModel < matlab.System
 
                     % Rotate algorithm
                     moves = update_algorithm(moves, false, true, 'rotation', 'x1');
-                    %moves = update_algorithm(moves, false, true, 'rotation', 'x3');
 
                     % If the previous motor angle was at 180 degrees and now
                     % is set to 0 degrees, a 180 degrees turn has
-                    % happend: rotate again
+                    % happened: rotate again
                     if obj.BR_duty_old == obj.duty_180_deg && BR_duty_truncated == obj.duty_0_deg
                         cube = rubrot2(cube, 'x3', 'animate', 1);
                         drawnow;
@@ -128,7 +126,7 @@ classdef RubikCubeModel < matlab.System
 
                     % If the previous motor angle was at 0 degrees and now
                     % is set to 180 degrees, a 180 degrees turn has
-                    % happend: rotate again
+                    % happened: rotate again
                     if obj.BR_duty_old == obj.duty_0_deg && BR_duty_truncated == obj.duty_180_deg
                         cube = rubplot(cube, 'x11');
                         drawnow;
@@ -141,7 +139,7 @@ classdef RubikCubeModel < matlab.System
 
                     % If the previous motor angle was at 180 degrees and now
                     % is set to 0 degrees, a 180 degrees turn has
-                    % happend: rotate again
+                    % happened: rotate again
                     if obj.BR_duty_old == obj.duty_180_deg && BR_duty_truncated == obj.duty_0_deg
                         cube = rubplot(cube, 'x13');
                         drawnow;
@@ -158,7 +156,7 @@ classdef RubikCubeModel < matlab.System
 
                     % If the previous motor angle was at 0 degrees and now
                     % is set to 180 degrees, a 180 degrees turn has
-                    % happend: rotate again
+                    % happened: rotate again
                     if obj.BL_duty_old == obj.duty_0_deg && BL_duty_truncated == obj.duty_180_deg
                         cube = rubrot2(cube, 'z1', 'animate', 1);
                         drawnow;
@@ -176,7 +174,7 @@ classdef RubikCubeModel < matlab.System
                         
                     % If the previous motor angle was at 180 degrees and now
                     % is set to 0 degrees, a 180 degrees turn has
-                    % happend: rotate again
+                    % happened: rotate again
                     if obj.BL_duty_old == obj.duty_180_deg && BL_duty_truncated == obj.duty_0_deg
                         cube = rubrot2(cube, 'z3', 'animate', 1);
                         drawnow;
@@ -190,7 +188,7 @@ classdef RubikCubeModel < matlab.System
 
                     % If the previous motor angle was at 0 degrees and now
                     % is set to 180 degrees, a 180 degrees turn has
-                    % happend: rotate again
+                    % happened: rotate again
                     if obj.BL_duty_old == obj.duty_0_deg && BL_duty_truncated == obj.duty_180_deg
                         cube = rubplot(cube, 'z31');
                         drawnow;
@@ -203,7 +201,7 @@ classdef RubikCubeModel < matlab.System
 
                     % If the previous motor angle was at 180 degrees and now
                     % is set to 0 degrees, a 180 degrees turn has
-                    % happend: rotate again
+                    % happened: rotate again
                     if obj.BL_duty_old == obj.duty_180_deg && BL_duty_truncated == obj.duty_0_deg
                         cube = rubplot(cube, 'z33');
                         drawnow;
@@ -270,7 +268,7 @@ classdef RubikCubeModel < matlab.System
             obj.offset_duty_left_arm = (obj.max_duty-obj.min_duty)/30;
             obj.offset_duty_right_arm = 0;
 
-            % Truncate values to the 4th decimal number
+            % Truncate values to the 6th decimal number
             obj.duty_90_deg = floor(obj.duty_90_deg * 10^6) / 10^6;
             obj.duty_180_deg = floor(obj.duty_180_deg * 10^6) / 10^6;
             obj.duty_grip_closed = floor(obj.duty_grip_closed * 10^6) / 10^6;

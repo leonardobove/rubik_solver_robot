@@ -31,28 +31,23 @@ classdef WebcamManager < matlab.System
             
         end
 
-        function stepImpl(obj, read_face_trig, webcam_alignment_trig, debug, sw3_input, SIL, reset, retake_picture, load_face, load_cube, manual_face, manual_cube, generate_cube)
-            global stop_alignment;
+        function stepImpl(obj, read_face_trig, webcam_alignment_trig, debug, sw3_input, SIL, reset, retake_picture, load_face, load_cube, manual_face, manual_cube, generate_cube, skip_cube_read)
             global read_done;
-            global alignment_done;
             global cube;
 
             if SIL % SIL simulation, generate a random Rubik Cube
                 if generate_cube == 1   % If generate_cube is set to 1, generate a random cube and do not wait for the user to manually load the colors
                     if webcam_alignment_trig == 1 && obj.webcam_alignment_trig_status == 0
                         cube = rubgen(3, 10); % Generate a random cube configuration
-                        alignment_done = 1;
                         read_done = 1;
                     end
                 end
-            else
+            elseif skip_cube_read == 0 % If the user doesn't want to skip the reading of the cube, enable the webcam scripts
                 % Activate webcam scripts on positive edge of the corresponding
                 % activation trigger
                 if webcam_alignment_trig == 1 && obj.webcam_alignment_trig_status == 0
-                    stop_alignment = false;
-                    %obj.webcam_alignment_process = parfeval(@webcam_alignment, 0);   % Enable webcam alignment in a separate thread
+                    obj.webcam_alignment_process = parfeval(@webcam_alignment, 0);   % Enable webcam alignment in a separate thread
                     obj.alignment_in_progress = true;
-                    alignment_done = 0;
                 elseif read_face_trig == 1 && obj.read_face_trig_status == 0
                     [face_colors, rgb_colors] = get_face_colors(debug);
                     disp(face_colors);
@@ -61,7 +56,6 @@ classdef WebcamManager < matlab.System
                     end
                     if any(face_colors(:) == 0) % Check if any detected color is equal to 0 (invalid color)
                         disp('An unidentified color in the current cube face was found.');
-                        %read_done = 2;
                     else % Valid color values, update the cube color matrix
                         % Get the index of the face by looking at the center
                         % tile color
@@ -107,33 +101,29 @@ classdef WebcamManager < matlab.System
             end
             
             % Stop the webcam alignment thread when SW3 is pressed
-            if sw3_input == 1 && obj.sw3_input_status == 0
+            if skip_cube_read == 0 && sw3_input == 1 && obj.sw3_input_status == 0
                 if obj.alignment_in_progress
-                    stop_alignment = true;
                     obj.alignment_in_progress = false;
                     % Stop the parallel process from running
-                    %cancel(obj.webcam_alignment_process);
-                    alignment_done = 1;
+                    cancel(obj.webcam_alignment_process);
                 end
 
             end
 
             if reset
-                if SIL==0 && obj.alignment_in_progress==1
-                    obj.webcam_alignment_trig_status = 0;
-                    obj.read_face_trig_status = 0;
-                    obj.retake_picture_status = 0;
-                    obj.load_face_status = 0;
-                    obj.load_cube_status = 0;
-                    obj.alignment_in_progress = false;
-                    obj.sw3_input_status = 0;
-                    %cancel(obj.webcam_alignment_process); 
-                    obj.webcam_alignment_process = 0;
+                if obj.alignment_in_progress
+                    cancel(obj.webcam_alignment_process);
                 end
+                obj.webcam_alignment_trig_status = 0;
+                obj.read_face_trig_status = 0;
+                obj.retake_picture_status = 0;
+                obj.load_face_status = 0;
+                obj.load_cube_status = 0;
+                obj.alignment_in_progress = false;
+                obj.sw3_input_status = 0;
+                obj.webcam_alignment_process = 0;
                 cube = zeros(3, 3, 6);
-                stop_alignment = false;
                 read_done = 0;
-                alignment_done =0;
             end
 
             % Update input triggers status
