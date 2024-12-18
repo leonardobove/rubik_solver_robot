@@ -9,7 +9,15 @@ function moves = update_algorithm(moves, solve, rotate, varargin)
 
 if solve
     if nargin == 5 && strcmpi(varargin{1}, 'cube') % Check if cube configuration was given
-        moves_str = Solve45(varargin{2}); % Solve cube
+        try
+            moves_str = Solve45(varargin{2}); % Solve cube
+        catch
+            % In case of wrong cube configuration, catch the error and
+            % reset the array of moves
+            disp('Error! A wrong cube configuration was given, cannot compute the solution.')
+            moves = uint8((zeros(45, 2)));
+            return
+        end
         display(moves_str); 
     else
         disp("No cube configuration was given. Did you mean update_algortihm(true, false, 'cube', cube)?");

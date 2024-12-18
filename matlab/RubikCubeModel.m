@@ -73,6 +73,15 @@ classdef RubikCubeModel < matlab.System
 
                 % Solve
                 moves = update_algorithm(moves, true, false, 'cube', cube);
+
+                % If all the returned moves are set to 0, this means that a
+                % wrong cube configuration was given, so it needs to be
+                % changed by the user
+                if all(moves(:) == uint8(0))
+                    obj.cube_ready = false;
+                    % Reset the cube
+                    cube = zeros(3, 3, 6);
+                end
             end
 
             % Truncate input values to the 4th decimal number
