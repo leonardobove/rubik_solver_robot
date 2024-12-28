@@ -1,4 +1,4 @@
-# rubik_solver_robot
+# Rubik's Cube Automatic Solver
 A servo motor actuated Rubik cube solver robot, controlled by S32K144EVB. Developed using Simulink MBD.
 The structure of the project is taken from the following [thingiverse](https://www.thingiverse.com/thing:3826740).
 
