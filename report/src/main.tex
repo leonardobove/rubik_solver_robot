@@ -1,0 +1,782 @@
+\documentclass{report}
+\usepackage{graphicx}
+\usepackage{sidecap}
+\usepackage{hyperref}
+\usepackage[margin=3cm]{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{svg}
+\usepackage{tikz}
+\usepackage{amsmath}
+
+
+% Define MATLAB style
+\lstdefinestyle{MATLABstyle}{
+    language=Matlab,               % Set language to MATLAB
+    basicstyle=\ttfamily\small,    % Basic font style
+    keywordstyle=\color{blue},     % Keywords in blue
+    commentstyle=\color{green!60!black}, % Comments in dark green
+    stringstyle=\color{red},       % Strings in red
+    numbers=left,                  % Line numbers on the left
+    numberstyle=\tiny,             % Style of line numbers
+    stepnumber=1,                  % Line numbers for every line
+    numbersep=10pt,                % Space between line numbers and code
+    backgroundcolor=\color{gray!10}, % Light gray background
+    frame=single,                  % Draw a frame around the code
+    rulecolor=\color{black},       % Frame border color
+    breaklines=true,               % Line breaking for long lines
+    breakatwhitespace=true,        % Break at whitespace if possible
+    showspaces=false,              % Do not show spaces as special characters
+    showstringspaces=false,        % Do not mark spaces in strings
+    tabsize=4,                     % Number of spaces per tab
+}
+
+
+\title{%
+    Rubik's Cube Automatic Solver \\
+    \medskip \\
+    \large Mechatronic System Design Project \\
+    \large University of Pisa}
+\author{Alessandro Palla \\
+        Leonardo Bove}
+\date{December 2024}
+
+\begin{document}
+
+\maketitle
+\newpage
+\tableofcontents
+
+\chapter{Introduction}
+The code and STL files of this project can be found on \href{https://github.com/leonardobove/rubik_solver_robot/tree/main}{GitHub}.
+\section{Project Objectives}
+
+The objective of the project is to read and solve a 3x3 Rubik's cube using an automatic robot, programmed via MATLAB and Simulink.
+\newline
+Robot management is handled by the NXP S32K144EVB-Q100
+microcontroller thanks to Simulink's Model-Based Design Toolbox for S32K1xx.
+
+
+\section{Requirements}
+
+In order to properly control the robot, we faced the following challenges:
+\begin{itemize}
+    \item Manage the communication between PC and microcontroller through PIL execution.
+    \item Acquisition of colors from the cube's faces using a webcam.
+    \item Control of four servo motors.
+\end{itemize}
+
+\subsection{Hardware}
+In the project, the following hardware has been used:
+\newline
+\begin{itemize}
+    \item The NXP S32K144EVB-Q100.
+
+        \begin{center}
+        \includegraphics[width=0.4\textwidth]{images/Requirements/s32k_no_bg.png} 
+        \end{center}
+   
+    \item A 3D printed support (PLA), downloaded from an other project found on \href{https://www.thingiverse.com/thing:3826740}{thingiverse}.
+
+        \begin{center}
+        \includegraphics[width=0.4\textwidth]{images/Requirements/supporto_3D_noBg.jpg} 
+        \end{center}
+
+     \item 4 Miuzei MZ996 180° servo motors controlled by a PWM with a duty-cycle, whose values lay in the range between 0.025 and 0.125. The datasheet is available \href{https://www.electronicoscaldas.com/datasheet/MG996R_Tower-Pro.pdf?srsltid=AfmBOor49yoIi3HG1Glu8xAof5r7fDnHv_RtM06DaJG2pPgA_Chr45Gq}{here}.
+
+        \begin{center}
+        \includegraphics[width=0.3\textwidth]{images/Requirements/servo_motor_no_bg.jpg} 
+        \end{center}
+
+     \item The Braccio Shield v4 from \href{https://store.arduino.cc/products/tinkerkit-braccio-robot?srsltid=AfmBOoqExbUeCwcXCfRaFAXlicvBgPllll6ozcArsreP7fObxQhmhGch}{Arduino robotic arm Tinkerkit}, a 5V Power board where the 4 servo motors are connected. This object, connected to the power supply, is necessary because of the limited available power of the PC's USB port. The schematic can be found \href{https://content.arduino.cc/assets/Braccio-Shield-V1.pdf}{here}.
+
+        \begin{center}
+        \includegraphics[width=0.3\textwidth]{images/Requirements/arduino_braccio_shield_no_bg.png}
+        \end{center}
+
+    \item A webcam for scanning the cube's faces.
+
+        \begin{center}
+        \includegraphics[width=0.2\textwidth]{images/Requirements/webcam_no_bg.png}
+        \end{center}
+        
+\end{itemize}
+
+
+\subsection{Software}
+ To use the NXP S32K144EVB-Q100 functions, Matlab and Simulink needed the following extension:
+\begin{itemize}
+    \item NXP Support Package S32K1xx 
+    \item Model-Based Design Toolbox for S32K1xx
+    \item Stateflow
+    \item Simulink Embedded Coder
+    \item Simulink Test
+    \item Simulink SIL/PIL Manager
+\end{itemize}
+In addition, two more toolboxes have been added: the \textbf{MATLAB Support Package for USB Webcams} with the aim of managing the webcam, and the \textbf{Rubik's Cube Simulator and Solver} toolbox. The latter was of significant importance for the project, because it allowed us to generate a digital model of the cube (see section \ref{sec:rub-cub-mod}) and to implement the \textit{Thistlethwaite 45} resolution algorithm on MATLAB.
+
+\section{Electrical Wiring}
+The \textit{Arduino Braccio Shield} can be directly mounted on top of the NXP board, which has an Arduino compatible pin header. In order to supply the servo motors with the 5V external power supply connected to the shield, it is necessary to enable it, by setting to a high logic level the PTB3 NXP GPIO, which corresponds to the D12 digital pin on the Arduino compatible pin header of the shield. This is shown in figure \ref{fig:shield-enable}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/Requirements/shield_enable.png}
+    \caption{Shield enabling}
+    \label{fig:shield-enable}
+\end{figure}
+
+Unfortunately, the servo motors pin headers on the shield have a different pinout (5V-SIGNAL-GND) compared to the one of the motors (SIGNAL-5V-GND), as you can see in figure \ref{fig:shield-wiring}. For this reason, instead of re-wiring the motors, male-female jumper wires were used to connect the right lines.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/Requirements/braccio_shield_wiring.png}
+    \caption{Servo motors wiring to the driver shield.}
+    \label{fig:shield-wiring}
+\end{figure}
+
+In particular, the following connections were made:
+\begin{itemize}
+    \item The left arm motor was connected to the M1 connector, whose signal line corresponds to the \textbf{PTB4} PWM output on the NXP board.
+    \item The left grip motor was connected to the M2 connector, whose signal line corresponds to the \textbf{PTB5} PWM output on the NXP board.
+    \item The right arm motor was connected to the M3 connector for the power supply, but, given that its signal line didn't lead to any PWM output on the NXP board, its PWM signal input was directly connected to the \textbf{PTD15} PWM output of the board.
+    \item The right grip motor was connected to the M4 connector for the power supply, but, for the same reason as the previous one, its PWM signal input was directly connected to the \textbf{PTD16} PWM output of the board.
+\end{itemize}
+
+For the correspondence between the shield signal lines and the GPIO pins on the NXP board, the following schematic was used (\ref{fig:shield-pinout}):
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/Requirements/shield_pinout.png}
+    \caption{Arduino Braccio shield v4 pinout}
+    \label{fig:shield-pinout}
+\end{figure}
+
+
+\chapter{System Description} 
+\section{PIL System}    \label{sec:pil-sys}
+The system was implemented using a \textbf{PIL} (\textit{Processor-in-the-Loop}) execution. This means that the system is subdivided into different models, some of which are directly run by the MATLAB engine on the PC whereas others are used to generate C source code, which is compiled and downloaded onto the target hardware (in this case the S32Kxx microcontroller); afterwards, the user can simultanously run the code on the target and the other models on the PC through a Simulink Processor-in-the-Loop Simulation, which enables a UART communication between the two hardwares, allowing data exchange and verification.
+
+This execution mode is generally used to test an embeddable model on the target device, while the PC models the environment where the microcontroller will be deployed, without the need of testing it directly in the real environment. This helps in testing the embedded software faster and without compromising the real environment, which can sometimes result in dangerous consequences. In this case, the PIL simulation environment is actually used as part of the under-test system, for the reasons that will be explained in the next subsection.
+
+\subsection{Pros and Cons of PIL Simulation}
+The choice of the PIL simulation was pursued for the following advantages:
+\begin{itemize}
+    \item \textbf{Delegation of complex tasks} to the PC: some functions, e.g. the webcam acquisition and the Rubik's cube solver algorithm, are easier to implement on the MATLAB environment because they were already available as application libraries or they would have required a computation effort that made it not implementable on an embedded system.
+    \item \textbf{Easy debugging} and signal \textbf{logging}: Simulink PIL simulation provides a real-time data viewer and allows to compare logged signals from different runs of the simulation.
+    \item \textbf{Simplified} set-up of the communication interface between PC and microcontroller via \textbf{UART}: Simulink automatically includes APIs in the generated embedded code that allow to exchange data via UART.
+    \item Highly \textbf{customizable user interface}: in the simulation enviroment, there are many dashboard blocks that allow the user to easily interact with the model deployed on the target hardware.
+\end{itemize}
+
+On the other hand, this choice implies some disadvantages:
+\begin{itemize}
+    \item Not perfect synchronization between PC and microcontroller: due to the overhead introduced by the MATLAB engine, sometimes there can be a pace error between the PC and the microcontroller simulation times.
+    \item UART interface not optimized: even though it is easier to set-up for complex data exchange, it is not optimized. This problem can be overcome by defining a custom UART data exchange protocol.
+    \item Impossibility to realize a stand-alone system: this problem can be solved by using a more powerful embedded system (e.g. a \textit{Raspberry Pi}), so that the webcam management and solver algorithm can be implemented directly on the target hardware, making it independent from the MATLAB engine.
+\end{itemize}
+
+\subsection{System Overview}
+In figure \ref{fig:overall_system} is presented the overall system.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1.0\linewidth]{images/PIL_system/test_harness.jpg}
+    %\includesvg[width=1.0\linewidth]{images/PIL_system/PIL_system}
+    \caption{Overall system overview}
+    \label{fig:overall_system}
+\end{figure}
+
+This view is taken from the Simulink \textbf{Test Harness} manager, because, for the way the PIL simulation is originally thought, the actual DUT is the model that will be implemented on the microcontroller, while the other non-embedded blocks are built in the testing environment.
+
+We can distinguish four main blocks in the system:
+\begin{itemize}
+    \item \textbf{Cube Actuator}: this block models the actuator for the motors and the main finite-state machine of the system and this is the model that will be embedded into the microcontroller.
+    \item \textbf{Webcam Manager}: this block is responsible for the webcam management and the cube's colors acquisition. It is run by the MATLAB interpreter.
+    \item \textbf{Rubik's Cube Model}: this block manages the virtual model of the physical cube and the sequence of solving moves.
+    \item \textbf{User Interface}: this area implements the user interface using blocks from the \textit{Simulink Dashboard} resources.
+\end{itemize}
+
+As we can see, these blocks communicate through Simulink signals, which are delivered to the embedded model as well, thanks to the PIL simulation UART interface. Exchange of data happens also through \textit{Data Store Memory} blocks (global variables) which are written by some models and read by others.
+
+The two execution times are set to be equal (i.e. 1 second on the PC equals to 1 second on the microcontroller) and the models' tick time is set to 0.1 seconds.
+
+\subsection{MATLAB System Block} 
+This block was used to implement both the \textit{Webcam Manager} and the \textit{Rubik's Cube Model}. It allows to implement algorithms using the MATLAB scripting language inside the Simulink environment. Moreover, it lets the user decide whether to generate source C code from it or to run it using the interpreter: the latter was the option that was helpful for our system.
+
+Other relevant features of this block are that it allows to define state variables, to keep track of the current state of the subsystem, and the user can define an arbitrary number of input and output ports. Unfortunately, output ports were not used, because, apparently, they forced the system to be compiled into C code, especially if those output signals were connected to the \textit{Cube Actuator} model. To solve this issue, we opted for system global variables (\textit{Data Store Memory}), written by the two MATLAB Block Systems and read by the other embedded model.
+
+\medskip
+
+The software implementation of this kind of block is made by means of a particular class, called \textbf{System object}. The default System object template is reported in \ref{code:system_obj}.
+
+\begin{lstlisting}[
+style=MATLABstyle,
+caption={System object template},
+label=code:system_obj
+]
+classdef untitled < matlab.System
+    % untitled Add summary here
+    %
+    % This template includes the minimum set of functions required
+    % to define a System object with discrete state.
+
+    % Public, tunable properties
+    properties
+
+    end
+
+    properties (DiscreteState)
+
+    end
+
+    % Pre-computed constants
+    properties (Access = private)
+
+    end
+
+    methods (Access = protected)
+        function setupImpl(obj)
+            % Perform one-time calculations, such as computing constants
+        end
+
+        function y = stepImpl(obj,u)
+            % Implement algorithm. Calculate y as a function of input u and
+            % discrete states.
+            y = u;
+        end
+
+        function resetImpl(obj)
+            % Initialize / reset discrete-state properties
+        end
+    end
+end
+\end{lstlisting}
+
+As we can see, the user can define \texttt{properties} that can be used to store state variables: unfortunately, their type can only be logical, numerical or an enumeration. These \texttt{properties} get initialized inside the \texttt{resetImpl} function. The main body of the system is the \texttt{stepImpl} function, which is executed at every simulation tick. The user can define input and output signals for the system, just by changing the input and output arguments of this function. From here, any MATLAB script can be called, gaining access to all the Simulink toolboxes.
+
+\section{Cube Actuator}
+The block \textbf{Cube Actuator} is the heart of the system, which is embedded in the NXP board.
+As we can see from figure \ref{fig:cub-act}, the model was implemented on Simulink, using the \textit{NXP's Model Based Design} toolbox. Here, we can distinguish four main blocks.
+The first is the \textbf{Stateflow}, which will be described in the next section. Its output is a \textbf{microcode} composed of four digits, one for each servo motor.
+\begin{itemize}
+ \item first digit [0, 1]: open/close left grip;
+ \item second digit [0, 1]: open/close right grip;
+ \item third digit [0, 1, 2]: set left arm to 90/0/180 degrees
+ \item  fourth digit [0, 1, 2]: set right arm to 90/0/180 degress
+\end{itemize}
+
+The following block is the \textbf{Cube Operation Decoder}, which takes as input the microcode and separates it into four different outputs. These are fed to the \textbf{Actuate Servos}, which converts the numbers in the corresponding duty-cycle values for the servos control. This way, a discrete positions actuation is implemented.
+
+The duty-cycle values are assigned as input of the \textbf{NXP PWM Config block}, which generates the C source code to control the PWM registers on the board.
+
+    \begin{figure}[h]
+    \centering
+    \includegraphics[width=1.0\linewidth]{images/Cube_actuator/cube_actuator.jpg}
+    \caption{Cube Actuator blocks}
+    \label{fig:cub-act}
+    \end{figure}
+    
+\subsection{Stateflow}
+Looking at the Stateflow, it is possibile to distinguish two macro groups: the \textbf{control section} and the \textbf{execution section}. The control section manages the operational phases of the robot, while the execution section sequentially executes the commands to perform a move on the cube.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1.0\linewidth]{images/Cube_actuator/state_flow.png}
+    \caption{Stateflow}
+    \label{fig:sta-flo}
+\end{figure}
+
+\subsubsection{Control Section}
+As you can see in figure \ref{fig:sta-flo-con}, the control section is composed by 5 states:
+\begin{itemize}
+\item \textbf{wait\_cube}: all local variables are initialized, the output \texttt{reset} is set to 1, initializing all variables in the \textit{Webcam Manager} and in the \textit{Rubik's Cube Model} (see sections \ref{sec:web-man} and \ref{sec:rub-cub-mod}). The \texttt{microcode} sent as output in this state is 1000, therefore one of the pliers is open and the other is closed. In this way, the user can easily place the cube on the arms. The cube has to be placed with the face having the red central tile in front of the webcam, and the face with the white central tile on the top.
+\item \textbf{webcam\_alignment}: \texttt{reset} is set to 0 and will keep this values for all the other states. The \texttt{microcode} changes to 1100, closing both pliers. The output \texttt{webcam\_alignment\_trig} is set to 1, starting the thread \texttt{webcam\_alignment}, see \ref{sub_sec:web-ali}.
+\item \textbf{read\_cube}: in this state the output \texttt{webcam\_alignment\_trig} is set to 0, the instantiated states are activated and they rotate the cube, in order to sequentially read the 6 faces, starting from the face with the red central cell, followed by blue, orange, green, white and yellow. At the end of the reading sequence, the cube is taken back to the original position. This is possible thanks to the instantiated states which sequencially changes every 2~sec, allowing the \texttt{microcode} to change accordingly. Moreover, once the next face is aligned with the webcam, the output \texttt{read\_face\_trig} is set to 1, triggering the acquisition of the colors of one face. Afterwards the user can decide to accept the acquired colors, retake a picture or manually load the face configuration. See \ref{sub: fac-col-acq} for more details.
+\item \textbf{solve\_cube}: this is the interface between the execution and control states. The \texttt{microcode} is set again to 1100 while the output \texttt{read\_done}, if the user does not press any button, is set to 1. This lets the \texttt{Rubik's Cube Model block} to update the \texttt{current\_move\_idx}, in order to process the next move in the execution states. Before moving to the execution states, \texttt{read\_done} is set again to 0. See section \ref{sec:rub-cub-mod}.
+\item \textbf{waiting}: the user can decide to pause the cube's solving by going inside this state and restart the execution at any time.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1.0\linewidth]{images/Cube_actuator/stateflow_control.png}
+    \caption{Control section of the Stateflow}
+    \label{fig:sta-flo-con}
+\end{figure}
+
+\subsubsection{State connections} 
+In order to move from one state to the other, some specific conditions need to be verified. Before explaining how state connections work, it is important to highlight that the stateflow transitions that depend on SW2 or SW3 button inputs are \textbf{sensitive to only the rising edge} of the associated input signal.
+
+\bigskip
+
+Starting from the \texttt{wait\_cube} state, the user can close the pliers and go to \texttt{webcam\_alignment} by pressing the SW2 button. After this initial condition, SW2 will be the \textbf{reset} button for all the other states, allowing to come back to \texttt{wait\_cube} and opening one of the pliers. The reset cannot happen during the execution of a single move.
+
+Once the user has completed the webcam alignment, by pressing SW3 the cube's reading starts, thus going into the associated state. If, however, the input constant \texttt{skip\_cube\_read} is set to 1, it means that the user does not want to scan the cube, inserting it manually instead, see \ref{sub: fac-col-acq}. In this case by pressing SW3, the next state will be directly \texttt{solve\_cube}.
+
+\texttt{read\_cube} state goes to \texttt{solve\_cube} once the last face has been read. In order to accept a cube's face scan and continue with the acquisition, the user has to press SW3. If the face was manually loaded, SW3 is still necessary to proceed with the acquisition.
+
+The connection between the execution states and \texttt{solve\_cube} state is possible thanks to the input \texttt{execute\_move}, which is set to 1 by the \textit{Rubik's Cube Model}, see \ref{sub:sol-mov-man}. 
+
+When the \textit{Rubik's Cube Model} sets to 1 the global variable \texttt{execute\_move}, the system goes into one of the execution state, doing a move of the cube's solving. The move to be executed is specified by the \texttt{next\_move} input, which consists of an array of two characters. Moreover, from \texttt{solve\_cube} it is possible to switch to the \texttt{waiting} state if SW3 button is pressed or if the local variable \texttt{pause} is equal to 1.
+
+From \texttt{waiting} if the user presses again SW3, the execution is resumed, going back to \texttt{solve\_cube} state.
+
+\subsubsection{Execution Section}
+Each of the 18 states in this section corresponds to a move to be performed. 
+
+When the global variable \texttt{execute\_move} is set to 1, the stateflow moves from \texttt{solve\_cube} to the execution state specified by \texttt{next\_move}.
+Each execution state is composed of multiple sub-states, which change the output \texttt{microcode} in order to rotate or modify the cube.
+
+At the end of the last cube's operation of one execution state, the stateflow goes back to \texttt{solve\_cube}. This process is repeated until the end of the solution moves.
+
+Besides, every state contains a pause and reset condition. If 
+the user presess SW3, the local variable \texttt{pause} is set to 1; similarly pressing SW2 the local variable \texttt{reset\_status} is set to 1. In this way it is possible to go to \texttt{waiting} or \texttt{wait\_cube} states directly from \texttt{solve\_cube} checking these local variables, as soon as the current move is finished.
+
+\subsection{Cube Operation Decoder and Actuate Servos} \label{sec:motor_pos_decoder}
+To convert the \texttt{microcode} in 4 distinct inputs, a MATLAB function with the following body has been used:
+\begin{lstlisting}[
+style=MATLABstyle,
+caption={Cube\_operation\_decoder},
+label=code:decoder
+] 
+function [move_bl, move_tl, move_br, move_tr] = cube_operation_decoder(cube_operation)
+x1 = int32(mod(cube_operation/1000, 10));
+x2 = int32(mod(cube_operation/100, 10));
+x3 = int32(mod(cube_operation/10, 10));
+x4 = int32(mod(cube_operation, 10));
+
+move_tl = x1;
+move_tr = x2;
+move_bl = x3;
+move_br = x4;
+\end{lstlisting}
+
+\bigskip
+
+After that, the outputs are converted into the corresponding duty-cycle values with another MATLAB function:
+\begin{lstlisting}[
+style=MATLABstyle,
+caption={Actuate\_Servos},
+label=code:act-serv
+] 
+function [BR, TR, BL, TL] = actuate_servos(move_bl, move_tl, move_br, move_tr)
+
+min_duty = 0.025;
+max_duty = 0.125;
+
+duty_0_deg = min_duty;
+duty_grip_open = min_duty + (max_duty-min_duty)/3;
+duty_grip_closed = min_duty + (max_duty-min_duty)/14; 
+duty_90_deg = min_duty + (max_duty-min_duty)/2;
+duty_180_deg = max_duty;
+
+
+duty_offset_left_arm = (max_duty-min_duty)/30;
+duty_offset_right_arm = 0;
+
+switch (move_tl)
+    case 0                  % Open left grip
+        TL = duty_grip_open;
+    case 1                  % Close left grip
+        TL = duty_grip_closed;
+    otherwise               % Open left grip
+        TL = duty_grip_open;
+end
+
+switch (move_tr)
+    case 0                  % Open right grip
+        TR = duty_grip_open;
+    case 1                  % Close right grip
+        TR = duty_grip_closed;
+    otherwise               % Open right grip
+        TR = duty_grip_open;
+end
+
+switch (move_bl)
+    case 0                  % Left arm straight
+        BL = duty_90_deg + duty_offset_left_arm;
+    case 1                  % Left arm at 90° clockwise
+        BL = duty_0_deg + duty_offset_left_arm;
+    case 2                  % Left arm at 90° counter-clockwise
+        BL = duty_180_deg + duty_offset_left_arm;
+    otherwise
+        BL = duty_90_deg + duty_offset_left_arm;
+end
+
+switch (move_br)
+    case 0                  % Right arm straight
+        BR = duty_90_deg + duty_offset_right_arm;
+    case 1                  % Right arm at 90° clockwise
+        BR = duty_0_deg + duty_offset_right_arm;
+    case 2                  % Right arm at 90° counter-clockwise
+        BR = duty_180_deg + duty_offset_right_arm;
+    otherwise
+        BR = duty_90_deg + duty_offset_right_arm;
+end
+
+\end{lstlisting}
+It is possible to notice that, in order to compensate for alignment errors between the two motors and therefore to be able to fine-tune the motors positions, two \textbf{offset} values were added.
+
+\section{Webcam Manager} \label{sec:web-man}
+This block is responsible for the webcam management, thanks to \textit{MATLAB Support Package for USB Webcam}. The system block is presented in figure \ref{fig:webcam_manager_block}.
+
+\begin{figure}[h!]
+    \centering
+    %\includegraphics[width=0.5\linewidth]{images/webcam_manager/webcam_manager_block.png}
+    \includesvg{images/webcam_manager/webcam_manager_block}
+    \caption{Webcam Manager System Block}
+    \label{fig:webcam_manager_block}
+\end{figure}
+
+The tasks performed by this system are the following:
+\begin{itemize}
+    \item \textbf{Webcam alignment}
+    \item \textbf{Face colors acquisition}
+\end{itemize}
+
+These tasks are triggered by the rising edge of signals coming from the \textit{Cube Actuator}. The rising edge detection is implemented using state variables that store the previous value of the respective input. For example, the state variable \texttt{webcam\_alignment\_trig\_status} is updated every tick with the current value of the corresponding input, \texttt{webcam\_alignment\_trig}: at the next simulation tick, if \texttt{webcam\_alignment\_trig == 1} and \texttt{webcam\_alignment\_trig\_status == 0}, this means that a rising edge on that signal has occurred.
+
+The \texttt{reset} input is likewise controlled by the \textit{Cube Actuator} and triggers an immediate reset of all the state variables.
+
+\subsection{Webcam Alignment} \label{sub_sec:web-ali}
+When a rising edge on the signal \texttt{webcam\_alignment\_trig} is detected, the MATLAB script \texttt{webcam\_alignment} is started: this script opens the connected USB webcam, displays a video preview of what the webcam sees and prints over the frames nine equally spaced red circles which form a square, so that the user can adjust the position of the webcam, in order to align the circles with the nine tiles of a single Rubik's cube face (see figure \ref{fig:webcam_align_view}). This way the face colors acquisition will correctly read the colors in the middle of each tile.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/webcam_manager/alignment.jpg}
+    \caption{Webcam alignment view}
+    \label{fig:webcam_align_view}
+\end{figure}
+
+Since the script continuously outputs the preview from the webcam, to make it easier for the user to perform the alignment, in order not to pause the whole simulation, it has to be executed on a different background thread. This is accomplished my means of the MATLAB function \texttt{parfeval}.
+
+\begin{lstlisting}[
+style=MATLABstyle,
+caption={Background thread execution},
+label=code:bg_thread
+]
+if webcam_alignment_trig == 1 && obj.webcam_alignment_trig_status == 0
+    obj.webcam_alignment_process = parfeval(@webcam_alignment, 0);   % Enable webcam alignment in a separate thread
+    obj.alignment_in_progress = true;
+\end{lstlisting}
+
+As we can see in \ref{code:bg_thread}, \texttt{parfeval} is called with second argument set to 0, which tells the interpreter that no output is expected from the new thread. \texttt{parfeval} returns a \textit{future object}, which is assigned to the state variable \texttt{webcam\_alignment\_process}. It can be later used to retrieve the thread outputs, if any, and to terminate the background thread using the function \texttt{cancel}, as soon as the alignment is completed and approved by the user by pressing the SW3 button.
+
+\subsection{Face Colors Acquisition} \label{sub: fac-col-acq}
+When a rising edge on the signal \texttt{read\_face\_trig} is detected, the \texttt{get\_face\_colors} script is triggered. This time there is no need of a background thread, since the script is non-blocking. It opens the webcam, takes a picture and computes nine RGB color codes by averaging the RGB values inside each of the nine circle areas used during the webcam alignment phase. These nine RGB color codes are compared with hardcoded RGB ranges, each of which corresponds to one of the six possible colors on the cube. Each color correspond to a different integer: red is 1, blue is 2, orange is 3, green is 4, white is 5 and yellow is 6. \texttt{get\_face\_colors} returns a 3x3 matrix containing the color integer codes detected for each tile. If no color is recognized, the matrix element corresponding to that tile is set to 0. If the \texttt{debug} input port of the system is set to 1, this script will also return the RGB average colors that have been acquired for debug and calibration purposes.
+
+Once the acquisition is completed, the webcam must be closed, since it is not possible to store its handler in any state variable of a MATLAB System Block, and the face colors matrix is analyzed: if any of the elements is 0 (undefined color), the user is notified through the simulation log and it is possible to re-take the picture by pressing the \textit{Re-take picture} button; otherwise, the user can approve the read colors (errors during acquisition can occur) by clicking the SW3 button and the face is loaded onto the global 3x3x6 \texttt{cube} matrix, that holds the color configuration of the whole cube during the simulation. When a face is approved, the global variable \texttt{read\_done} is set to 1 (and reset to 0 later on): this flag is read by the \textit{Cube Actuator}, which now can proceed and rotate the cube, in order to present to the webcam the following face to be read.
+
+\medskip
+
+Due to bad light environments, it can happen that some colors of a face are hard to read. In this case, the user can manually load the color configuration of the current face through the user interface (see figure \ref{fig:load_face}) and add it to the cube configuration using the \textit{Load face} button.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.3\linewidth]{images/webcam_manager/load_face.png}
+    \caption{UI to manually load face colors}
+    \label{fig:load_face}
+\end{figure}
+
+Not only can the user manually load the color configuration of a single face, but it is also possible to manually load the whole cube configuration as a 3x3x6 matrix of integers from 1 to 6, assigned to the \texttt{manual cube} constant value block. The faces must be inserted with increasing number of the middle tile color code (i.e. the first face is the red one and the last is the yellow one), as showed in equation \ref{eq:cube_mat}.
+
+\begin{equation}\label{eq:cube_mat}
+    [[1, 2, 3; 2, 1, 4; 5, 6, 3], ..., [2, 5, 6; 3, 6, 3; 4, 1, 2]]
+\end{equation}
+
+\section{Rubik's Cube Model} \label{sec:rub-cub-mod}
+This block is responsible for the real-time animations of the virtual cube and for the computation of the sequence of solving moves given the \texttt{cube} configuration, thanks to the \textit{MATLAB Rubik's Cube Simulator and Solver} toolbox. The system block is presented in figure \ref{fig:cube_model_block}.
+
+\begin{figure}[h]
+    \centering
+    %\includegraphics[width=0.5\linewidth]{}
+    \includesvg{images/rubik_cube_model/cube_model_block}
+    \caption{Rubik's Cube Model block}
+    \label{fig:cube_model_block}
+\end{figure}
+
+The tasks performed by this system are the following:
+\begin{itemize}
+    \item \textbf{Digital twin} of the physical cube
+    \item \textbf{Rubik's cube solver}
+\end{itemize}
+
+Similarly to the \textit{Webcam Manager}, some of the actions of this block are triggered by the edge of signal flags set by the \textit{Cube Actuator}. Also here the \texttt{reset} input resets all the state variables of the system.
+
+\subsection{Digital Twin}\label{sec:digital-twin}
+The system takes as inputs the duty-cycles set by the \textit{Cube Actuator} to the PWM generators, which determine the absolute positions of the four servo motors (BR is bottom-right, BL is bottom-left, TR is top-right and TL is top-left). At each simulation tick, the current values of these duty-cycles is stored in state variable, so that the system can detect changes in the positions of the motors. In this system are also defined some constant variables that contain the duty-cycles values corresponding to fixed positions in which the motors can be found in (e.g. 180°, 90° or 0° for the bottom motors or open/closed for the grip motors), see \ref{code:duty_params}. These values are set after the analogous parameters that can be found in the \textit{Motor Positions Decoder} (see subsection \ref{sec:motor_pos_decoder}), and they must not differ, in order to allow the \textit{Rubik's Cube Model} to correctly interpret the positions.
+
+\begin{lstlisting}[
+style=MATLABstyle,
+caption={Constant duty-cycles parameters},
+label=code:duty_params
+]
+obj.min_duty = 0.025;
+obj.max_duty = 0.125;
+obj.duty_0_deg = obj.min_duty;
+obj.duty_90_deg = obj.min_duty + (obj.max_duty-obj.min_duty)/2;
+obj.duty_180_deg = obj.max_duty;
+obj.duty_grip_open = obj.min_duty + (obj.max_duty-obj.min_duty)/3;
+obj.duty_grip_closed = obj.min_duty + (obj.max_duty-obj.min_duty)/14;
+obj.offset_duty_left_arm = (obj.max_duty-obj.min_duty)/30;
+obj.offset_duty_right_arm = 0;
+
+% Truncate values to the 6th decimal number
+obj.duty_90_deg = floor(obj.duty_90_deg * 10^6) / 10^6;
+obj.duty_180_deg = floor(obj.duty_180_deg * 10^6) / 10^6;
+obj.duty_grip_closed = floor(obj.duty_grip_closed * 10^6) / 10^6;
+obj.duty_grip_open = floor(obj.duty_grip_open * 10^6) / 10^6;
+obj.offset_duty_left_arm = floor(obj.offset_duty_left_arm * 10^6) / 10^6;
+obj.offset_duty_right_arm = floor(obj.offset_duty_right_arm * 10^6) / 10^6;
+\end{lstlisting}
+
+The reason why these values and the input duty-cycle values are truncated to the sixth decimal number is because, due to resolution errors in computations with floating point numbers typical of scripting languages, such as Python and MATLAB, the input values differed from these constants with an error of magnitude of \(10^{-10}\).
+This fact implied that the motors were never found in any of these fixed absolute positions. Of course, an error of that order, which is only a numerical fluctuation, can be easily ignored.
+
+As soon as the cube colors are fully acquired, a visual representation of the cube is drawn (see figure \ref{fig:digital_twin}), thanks to the toolbox function \texttt{rubplot}, and, given the sequence of absolute positions of the motors, the system can detect movements of the physical cube and animate them on the cube drawing, using the provided toolbox functions.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/rubik_cube_model/digital_twin.jpg}
+    \caption{Digital twin of the physical cube}
+    \label{fig:digital_twin}
+\end{figure}
+
+This feature is very helpful for debugging purposes, because it can be used to test the functionality of the \textit{Cube Actuator} without the need of the actual mechanical structure and of deploying the model on the microcontroller (this will be better explained in section \ref{sec:sil}). Moreover, it is also helpful along with the physical cube being solved, since it can be used to check for inequalities between the real and virtual implementations: given that the digital twin model has been thoroughly tested together with the actuator model, in case of discrepancies it can be easily affirmed that the problem is in the physical motors, resulting in a considerable help during the debug process.
+
+\subsection{Solution Moves Management} \label{sub:sol-mov-man}
+The algorithm used to solve the cube is the \textbf{\textit{Thistlethwaite 45}}, which solves the cube in less than 45 moves, averaging at 31. This algorithm is already available in the MATLAB Rubik's Cube toolbox and it is implemented in the function \texttt{Solve45} which takes as input a 3x3x6 matrix, containing the cube colors configuration with integers from 1 to 6, as described before (see \ref{sub: fac-col-acq}). If the given configuration is impossible, i.e. it cannot be realized with a standard Rubik's cube, the model will notify the user and it will allow to load a new configuration; otherwise, it will return an array of strings of variable length (between two and three), containing the sequence of moves that solve the cube, expressed in the standard Rubik's notation: for example \textit{"L"} stands for a 90° clockwise rotation of the left face, \textit{"U'"} stands for a 90° counter-clockwise rotation of the upper face or \textit{"B'2"} stands for a 180° counter-clockwise rotation of the back face.
+The standard convention for the naming of the faces is presented in figure \ref{fig:face_naming}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/rubik_cube_model/face_naming.png}
+    \caption{Standard face names for a 3x3 Rubik's cube.}
+    \label{fig:face_naming}
+\end{figure}
+
+The sequence of moves is stored in the global \textit{Data Store Memory} called \texttt{moves}: given that Simulink cannot implement global variables as arrays of strings and to make it easier the exchange of information with the \textit{Cube Actuator} model (remember that it will be converted into C code), \texttt{moves} is an array of 90 character vectors of constant length two. The custom script \texttt{update\_algorithm} has the purpose of converting the output of \texttt{Solve45} from an array of strings (actually an array of MATLAB cell strings) into an array of character vectors, as showed in \ref{code:string2char}. This is done by means of the MATLAB method \texttt{arrayfun}, which applies a function to all the elements of an array.
+
+\begin{lstlisting}[
+style=MATLABstyle,
+caption={Array of cells strings into array of character vectors},
+label=code:string2char
+]
+moves_str = Solve45(varargin{2}); % Solve cube. Returns an array of cell strings
+
+% Update the object moves sequence, converting moves_str to
+% an array of chars vectors
+moves = arrayfun(@(s) uint8(char(s)), moves_str, 'UniformOutput', false);
+
+new_moves = uint8((zeros(90, 2)));
+
+% Convert the moves from a single row cell array of chars vectors back to a
+% matrix of uint8, where each row is a move
+for i = 1:length(moves)
+    new_moves(i, :) = uint8([cell2mat(moves(:, i)), zeros(1, 2 - length(cell2mat(moves(:, i))))]); % Consider a zero-padding at the end of each vector (only for moves of length 1)
+end
+
+% Update moves
+moves = new_moves;
+\end{lstlisting}
+
+Since some moves are of length three, the solution array is first parsed to look for moves like \textit{"F'2"}, which are then split into two subsequent \textit{"F'"} moves. That is why the final array \texttt{moves} must have length higher than the theoretical maximum expected with the \textit{Thistlethwaite 45} algorithm: in the worst case there are 45 double counter-clockwise moves, leading to a final number of moves of 90.
+
+\medskip
+
+The point of view of the given solution moves is always considering the red face as the front face and the white face as the up face: this is why the cube must be inserted in the robotic arms with the red side facing the webcam and, after the read sequence, the cube will be automatically reset in the original position, with the red face in front of the webcam. Of course, during the execution of the sequence of moves, the whole cube can be rotated and the point of view from the webcam, which is always our reference, changes. Thankfully, the Rubik's cube toolbox provides also a function that updates the algorithm, given the applied rotation: \texttt{algrot}. This function is called inside \texttt{update\_algorithm} only when the cube undergoes a rotation around one of its three axes. This function updates the point of view of all the moves in \texttt{moves}.
+
+Here in \ref{code:cube-rot} is showed a snippet of code showing the detection of a cube rotation, thanks to the temporal sequence of duty-cycles as explained in \ref{sec:digital-twin}, followed by the update of the cube animation and the update of the moves' sequence.
+
+\begin{lstlisting}[
+style=MATLABstyle,
+caption={Detection of a cube rotation, its animation and update of the moves' sequence},
+label=code:cube-rot
+]
+if TR_duty_truncated == obj.duty_grip_closed && TL_duty_truncated == obj.duty_grip_open && BR_duty_truncated > obj.BR_duty_old
+    % Counter-clockwise rotation of the right arm with the left
+    % grip open (x1)
+    cube = rubrot2(cube, 'x1', 'animate', 1);
+    drawnow;
+    
+    % Rotate algorithm
+    moves = update_algorithm(moves, false, true, 'rotation', 'x3');
+    
+    % If the previous motor angle was at 0 degrees and now
+    % is set to 180 degrees, a 180 degrees turn has
+    % happened: rotate again
+    if obj.BR_duty_old == obj.duty_0_deg && BR_duty_truncated == obj.duty_180_deg
+        cube = rubrot2(cube, 'x1', 'animate', 1);
+        drawnow;
+        moves = update_algorithm(moves, false, true, 'rotation', 'x3');
+    end
+\end{lstlisting}
+
+The moves are fed one by one to the \textit{Cube Actuator}, by means of a \textit{Data Store Read} of \texttt{moves}, which allows to read the move at the position specified by the pointer \texttt{current\_move\_idx}, as shown in figure \ref{fig:curr-mov-pointer}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/rubik_cube_model/current_move_pointer.png}
+    %\includesvg[width=0.5\linewidth]{images/rubik_cube_model/move_pointer.svg}
+    \caption{Current move pointer usage}
+    \label{fig:curr-mov-pointer}
+\end{figure}
+
+Every time the \textit{Cube Actuator} completes one move, it generates a positive edge on the signal \texttt{move\_done}, which is detected by the \textit{Rubik's Cube Model}: then it increments the pointer to the array of moves and triggers the execution of the currently selected move by rising the signal \texttt{execute\_move}, read by the \textit{Cube Actuator}. This sequence is presented in the snippet \ref{code:move-exe}:
+
+\begin{lstlisting}[
+style=MATLABstyle,
+caption={Update of the current move and move execution trigger},
+label=code:move-exe
+]
+% After applying rotations (rising edge of move_done), update current move index if the
+% move is completed and start move execution
+if move_done == 1 && obj.move_done_old == 0
+    current_move_idx = uint16(current_move_idx + 1);
+elseif move_done == 0
+    execute_move = 0;
+elseif move_done == 1
+    execute_move = 1;
+end
+\end{lstlisting}
+
+Once the end of the \texttt{moves} array is reached, the model does not execute any move and waits for the user input to reset the system by clicking SW2.
+
+\chapter{Execution}
+
+The execution is performed inside the Simulink \textbf{Test Harness} environment.
+To open it, starting from the Simulink window of the project, you need to follow these steps:
+\begin{enumerate}
+    \item Click on APPS in the Menu bar, at the top of the window, and select \textit{Simulink Test}.
+    \item In the associated toolbar click on \textit{Manage Test Harnesses} and then select the only available Test Harness, i.e. \textit{rubik\_cube\_solver\_testbench}.
+    \item Once the Test Harness window is opened, select in the menu bar the APP \textit{SIL/PIL Manager}.
+    \item Select in the toolbar on the left whether to execute a SIL mode or a PIL mode.
+    \item From the toolbar, insert a desired stop time and click on \textit{Run SIL/PIL}.  
+\end{enumerate}
+
+\section{SIL Execution}\label{sec:sil}
+Thanks to the digital twin, see \ref{sec:digital-twin}, it was possible not only to use the PIL mode in order to solve the cube as already described in \ref{sec:pil-sys}, but also to run a \textbf{SIL} (\textit{Software-in-the-Loop}) execution.
+
+Using SIL, webcam acquisition is disabled and the user can choose whether to manually load a cube configuration or generate one with a random configuration. The cube is then solved and displayed through an animation.
+
+The \textit{Cube Actuator} code is executed in simulation on Simulink. In this way it is possible to simulate a virtual cube's solving, with the same resolution times and the same possible movements of the arms and pliers. Moreover, as for the PIL execution, user can use the \texttt{pause} function, by pressing SW3, or the \texttt{reset} function, by pressing SW2. In the latter case, the cube's animated figure is closed and it is possible to generate a new one by pressing SW2 again.
+
+\subsection{Test Harness Configuration for SIL}
+
+The Test Harness screen must be properly configured prior to execution.
+
+To start with, looking at figure \ref{fig:overall_system}, constant inputs on the left of \textit{Webcam Manager} block have to be configured as follows:
+\begin{itemize}
+    \item \texttt{SIL} has to be set at 1.
+    \item if the user wants to generate a random cube, also \texttt{Generate Cube} has to be set at 1.
+\end{itemize}
+Going to the User Interface, if the user does not generate the cube, he can manually load it, by typing the configuration as explained in \ref{eq:cube_mat}, and then press the \textit{Load cube} button.
+
+Moreover, without the need to scan the cube, the user can set \texttt{skip\_cube\_read} input constant to 1. This way, the \texttt{read\_cube} state is skipped. It can be useful to not skip this state, for example when the user wants to emulate the moves done on the cube during the acquisition phase on the virtual cube animation (in this case, it is necessary to generate a random cube). As a matter of fact, this mode was used to debug this state.
+
+Once the configuration is completed, the user can start the execution and leave the reset state by pressing SW2. As soon as the cube configuration is fully loaded, the digital twin animation will appear on the screen, and, by pressing SW3, the resolution of the cube will start.
+
+
+\section{PIL Execution}\label{sec:pil}
+The \textit{Processor-in-the-Loop} execution is the mode used when a resolution of the physical cube is desired, by inserting it into the robot.
+
+As widely seen in chapter \ref{sec:pil-sys}, the user can decide whether to acquire the cube colors via the webcam or upload them manually. Once the configuration is available, the cube solving begins. The set-points of the angular positions of the motors are read by the \textit{Rubik's Cube Model}, which generates a digital twin of the physical cube and replicates its movements.
+
+Once the PIL simulation is launched, the \textit{Cube Actuator} code is compiled and downloaded to the microcontroller, and a UART communication interface is started between the PC and the microcontroller.
+
+\subsection{Test Harness Configuration for PIL}
+As already done for the SIL, the instructions that must be added to the test harness for PIL are reported below.
+
+Constant inputs on the left of \textit{Webcam Manager} block have to be configured as follows:
+\begin{itemize}
+    \item \texttt{SIL} has to be set at 0.
+    \item \texttt{Generate Cube} does not care in this mode.
+    \item \texttt{debug} can be set to 1, in which case the debug RGB values acquired are reported in the output log.
+\end{itemize}
+\medskip
+If the user wants to acquire the cube's faces via webcam, \texttt{skip\_cube\_read} on the left of the \textit{Cube Actuator}, has to be set to 0. Now, looking at the User Interface, by pressing SW2 the webcam alignment is activated, and then, using the SW3 button, it is possible to start the cube's acquisition. The user can check the acquired colors on the output log, or, as already described in chapter \ref{sub: fac-col-acq}, they can manually change the color configuration of the face and upload it by pressing \texttt{Load face}. When the user is satisfied with the acquired colors, by pressing SW3 again it is possibile to proceed to the acquisition of the next face. Once all the faces are uploaded and the cube is set back to the original position, the resolution of the cube starts automatically.
+
+\bigskip
+
+It is always possible (except during a move) in both kinds of executions to reset the system using the SW2 button and reconfigure the Test Harness. However, if the user wants to switch from a SIL to a PIL execution or vice versa, he must interrupt the current mode and start a new one, making sure that the NXP board and the webcam are properly connected to the PC.
+
+
+\chapter{Conclusions}
+\section{Problems}\label{sec:prob}
+The problems that we mainly had to cope with are related to the servo motors and their actuation:
+\begin{itemize}
+    \item \textbf{Grip on the cube surface}: due to the smooth surface of the standard Rubik's cube, the grip of the PLA printed robotic hands was not optimal. For this reason we had to find some buffer material to put between the cube and the hand. The best choice resulted in a soft foamy material overlayered with a rubber on top of it, which had the perfect friction coefficient.
+    
+    \medskip
+    
+    Unfortunately, there is a subtle threshold of duty-cycle value: if the duty-cycle of the grip motors is below this threshold, the grip is not strong enough to hold the cube; if it is higher, the motor stalls and it becomes irresponsive of any further set point values. When this happens the motor generates a considerable amount of heat and it independently tries to go to a 0° position, which corresponds to a fully closed grip hand.
+    
+    \begin{figure}[h]
+        \centering
+        \input{drawings/rubiks_cube_solver_physics}
+        \caption{Rubik's Cube Solver structure physics}
+        \label{fig:structure-physics}
+    \end{figure} 
+    
+    Now, we could think that the problem lies in the fact that the maximum stall torque is not enough to hold the cube, but we can see that this is not the case. In figure \ref{fig:structure-physics} we can see the model for the mechanical structure, in the worst case when only one arm is holding the cube, where \(m\overset{\rightharpoonup}{g}\) is the weight force, with \(m\) the mass of the cube (equal to \(140g\)) and \(\overset{\rightharpoonup}{F}_A\) is the static friction force between the hand and the cube. As we can see from figure \ref{fig:cube-friction}, we can find the magnitude of the static friction force as function of the force impressed by one servo motor through the grip hand.
+
+    \begin{equation}\label{eq:friction-eq}
+         |\overset{\rightharpoonup}{F}_A|=\mu_s|\overset{\rightharpoonup}{F}_{servo}|
+    \end{equation}
+
+    \begin{figure}[h]
+        \centering
+        \input{drawings/cube_friction}
+        \caption{Top view of the Rubik's cube with the robotic hand.}
+        \label{fig:cube-friction}
+    \end{figure}
+
+    By imposing the static equilibrium along the vertical direction, we obtain:
+
+    \begin{equation}\label{eq:static1}
+        -mg+2|\overset{\rightharpoonup}{F}_A|\sin{(\frac{\pi}{4})}=0
+    \end{equation}
+
+    \begin{equation}\label{eq:static2}
+        -mg+2\mu_s|\overset{\rightharpoonup}{F}_{servo}|\frac{\sqrt{2}}{2}=0
+    \end{equation}
+
+    \begin{equation}\label{eq:static3}
+        |\overset{\rightharpoonup}{F}_{servo,tot}|=2|\overset{\rightharpoonup}{F}_{servo}|=mg\frac{2}{\sqrt{2}}\frac{1}{\mu_s}=3.238N
+    \end{equation}
+
+    Where we took \(\mu_s=0.6\), which is the worst friction coefficient that can be generally found between rubber-like materials and plastic. Now, considering that the lenght of the grip hand is about \(5cm\), we can find that the maximum stall torque required by one motor to hold the cube is \(T_s= |\overset{\rightharpoonup}{F}_{servo,tot}|\cdot0.05m=0.1619Nm=1.65kgf\cdot cm\), which results far less than the maximum available stall torque declared in the datasheet (\(T_{max}=9.4kgf\cdot cm\)) at a power supply voltage of 4.8V (in our case it is 5V). This could mean that the maximum torque may be overcome during transients or the motor is defective.
+
+    \bigskip
+
+    One possible solution could be increasing the operating voltage of the motors up to 7.2V, which is the maximum allowed for this model: this way, also the maximum stall torque will increase and, reasonably, also the dynamic torque (it is not stated in the datasheet).
+
+    Another possible solution could be reducing the strength of grip of the motors and replace the hands with elastic pliers, as shown in figure \ref{fig:elastic-pliers}.
+
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width=0.5\linewidth]{images/problems/pliers.PNG}
+        \caption{Elastic pliers.}
+        \label{fig:elastic-pliers}
+    \end{figure}
+
+    This way, all the cube load will not be only on the servo motors, but the elastic force of the pliers would help to increase the force on the cube without overloading the motors.
+
+    \bigskip
+    This solutions are not implemented yet.
+
+    \item \textbf{Motors instability}
+    During PIL simulation, there were sudden and random small oscillations of the motor shafts around their set point angular position (defined by the PWM duty-cycle).
+    
+    This effect can be caused by noise on the PWM wave generated by the microcontroller: however, this is not the case, because when the microcontroller flash memory is loaded with a test program (analog control of motor angular position through the built-in potentiometer) and executed in stand-alone mode, this effect is not present. Therefore it must be due to the co-execution between the microcontroller and the PC. The solution to this problem is then converting the whole project to an embedded system, without the need of a Simulink PIL simulation.
+\end{itemize}
+\section{Future Improvements}
+In addition to the solutions proposed in the previous section \ref{sec:prob}, other improvements can be made to the current project:
+\begin{itemize}
+    \item \textbf{Re-design of the current 3D structure}, in order to fix small misalignments, due to the servo motors used, which are different compared to the ones used in the original project.
+    
+    \item \textbf{Webcam with a larger FOV}: the current webcam has a quite small FOV and for this reason it could not be mounted on the original holder, since it was too close to the cube face (it was designed for a \href{https://www.raspberrypi.com/products/camera-module-v2/}{Raspberry Pi Camera Module}).
+
+    \item \textbf{Custom UART protocol interface}: many limitations in the exchange of data between the PC environment and the microcontroller were due to the UART interface (\textit{openSDA}) not being optimized for our objectives, because it was automatically taken care by the \textit{NXP's Model Based Design} toolbox. One way to reduce the instability of the motors due to the PIL simulation and to gain more control on what data is actually exchanged, limiting it to the bare minimum, could be to implement a custom UART interface. This means that the \textit{Webcam Manager} and \textit{Rubik's Cube Model} blocks would be deployed from the Simulink testing enviroment to a custom application (e.g. written in Python), which also takes care of the graphical user interface and of the UART communication, for example using the library \href{https://pyserial.readthedocs.io/en/latest/}{pySerial}.
+    
+\end{itemize}
+
+\end{document}
